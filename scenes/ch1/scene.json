@@ -1,0 +1,35 @@
+{
+  "id": "ch1",
+  "title": "第一夜　仏間",
+  "image": "bg.svg",
+  "width": 1536,
+  "height": 1024,
+  "pick": 8,
+  "flashlight": false,
+  "intro": [
+    "祖母・千代が消えた。",
+    "警察は家出だと言った。八十七の老婆が、靴も履かずに。",
+    "三年ぶりに訪れた霧ヶ淵の家は、記憶よりずっと暗かった。",
+    "仏間の襖を開けると、線香の匂いがまだ残っていた。\n——まるで、誰かがついさっきまで、ここにいたかのように。",
+    "祖母の手帳の最後の頁には、震える字でこう書かれていた。",
+    "『かくれさまに とられたものを ぜんぶ見つけなさい』"
+  ],
+  "outro": [
+    "仏壇の奥で、何かがコトリと鳴った。",
+    "振り返ると、閉めたはずの台所の戸が、\n指一本ぶんだけ開いていた。"
+  ],
+  "items": [
+    { "id": "doll", "name": "日本人形", "shape": "rect", "coords": [604, 424, 52, 104] },
+    { "id": "bell", "name": "鈴", "shape": "circle", "coords": [300, 215, 18] },
+    { "id": "ofuda", "name": "お札", "shape": "rect", "coords": [1110, 296, 36, 98] },
+    { "id": "comb", "name": "櫛", "shape": "rect", "coords": [864, 806, 72, 40] },
+    { "id": "candle", "name": "蝋燭", "shape": "rect", "coords": [1228, 430, 26, 74] },
+    { "id": "mirror", "name": "手鏡", "shape": "rect", "coords": [204, 856, 100, 104] },
+    { "id": "key", "name": "古い鍵", "shape": "rect", "coords": [1294, 936, 72, 30] },
+    { "id": "foxmask", "name": "狐面", "shape": "rect", "coords": [1010, 224, 60, 110] },
+    { "id": "umbrella", "name": "番傘", "shape": "poly", "coords": [110, 288, 136, 302, 116, 524, 80, 606, 66, 600, 88, 514] },
+    { "id": "beads", "name": "数珠", "shape": "circle", "coords": [660, 700, 42] },
+    { "id": "teacup", "name": "湯呑み", "shape": "rect", "coords": [1096, 822, 48, 54] },
+    { "id": "photo", "name": "古い写真", "shape": "rect", "coords": [1384, 686, 74, 70], "story": true, "text": "祖母と幼い私の写真。\n……私の顔だけが、黒く塗り潰されている。" }
+  ]
+}

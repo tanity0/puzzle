@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0908">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="かくれさま">
+  <meta name="description" content="和風ホラー・アイテム探しゲーム「かくれさま —朧屋敷の神隠し—」">
+  <title>かくれさま</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&family=Yuji+Syuku&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- タイトル -->
+    <section id="screen-title" class="screen active">
+      <div class="fog"></div>
+      <div class="title-block">
+        <h1 class="logo">かくれさま</h1>
+        <p class="subtitle">朧屋敷の神隠し</p>
+      </div>
+      <nav class="title-menu">
+        <button id="btn-start" class="btn primary">はじめる</button>
+        <button id="btn-select" class="btn">夜を選ぶ</button>
+        <button id="btn-settings" class="btn ghost">設定</button>
+      </nav>
+      <p id="boot-error" class="boot-error" hidden></p>
+      <p class="caution">※ 驚かす演出と音があります。設定で弱められます。</p>
+    </section>
+
+    <!-- 夜（ステージ）選択 -->
+    <section id="screen-select" class="screen">
+      <header class="bar">
+        <button id="btn-select-back" class="icon-btn" aria-label="戻る">‹</button>
+        <h2>夜を選ぶ</h2>
+      </header>
+      <ul id="night-list" class="night-list"></ul>
+    </section>
+
+    <!-- ストーリー -->
+    <section id="screen-story" class="screen">
+      <p id="story-title" class="story-title"></p>
+      <p id="story-text" class="story-text"></p>
+      <p class="story-next">タップで進む</p>
+      <button id="btn-story-skip" class="btn ghost small story-skip">飛ばす</button>
+    </section>
+
+    <!-- プレイ -->
+    <section id="screen-play" class="screen">
+      <header class="hud">
+        <button id="btn-pause" class="icon-btn" aria-label="メニュー">≡</button>
+        <p id="play-title" class="hud-title"></p>
+        <div class="grudge" aria-label="怨念">
+          <span class="grudge-label">怨</span>
+          <div class="grudge-bar"><div id="grudge-fill"></div></div>
+        </div>
+        <p id="play-time" class="hud-time">0:00</p>
+      </header>
+      <div id="stage-wrap" class="stage-wrap">
+        <div id="stage" class="stage">
+          <div id="content" class="content">
+            <img id="scene-img" alt="" draggable="false">
+            <svg id="overlay" class="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+        <div class="vignette"></div>
+        <div id="flashlight" class="flashlight"></div>
+        <div id="fx" class="fx"></div>
+        <div class="zoom-btns">
+          <button id="btn-zoom-in" class="icon-btn" aria-label="拡大">＋</button>
+          <button id="btn-zoom-out" class="icon-btn" aria-label="縮小">－</button>
+        </div>
+        <div id="toast" class="toast" role="status"></div>
+      </div>
+      <footer class="tray">
+        <button id="btn-hint" class="hint-btn" aria-label="お札でヒント">
+          <span class="ofuda">札</span>
+          <span id="hint-count" class="hint-count">3</span>
+        </button>
+        <ul id="item-list" class="item-list"></ul>
+        <p id="remain" class="remain"></p>
+      </footer>
+    </section>
+
+    <!-- 結果 -->
+    <section id="screen-result" class="screen">
+      <div class="result-card">
+        <p id="result-title" class="result-title"></p>
+        <p class="result-label">評価</p>
+        <p id="result-rank" class="result-rank"></p>
+        <dl class="result-stats">
+          <dt>時間</dt><dd id="result-time"></dd>
+          <dt>見誤り</dt><dd id="result-miss"></dd>
+          <dt>お札</dt><dd id="result-hint"></dd>
+        </dl>
+        <div class="result-actions">
+          <button id="btn-next" class="btn primary">先へ進む</button>
+          <button id="btn-retry" class="btn">もう一度</button>
+          <button id="btn-result-select" class="btn ghost">夜を選ぶ</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- メニュー（設定・中断） -->
+  <div id="menu" class="modal" hidden>
+    <div class="modal-card">
+      <h2 id="menu-title">設定</h2>
+      <div class="menu-game">
+        <button id="btn-resume" class="btn primary">つづける</button>
+        <button id="btn-restart" class="btn">最初からやり直す</button>
+        <button id="btn-quit" class="btn">夜選択へ戻る</button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="opt-sound"> 音を鳴らす</label>
+      <label class="toggle"><input type="checkbox" id="opt-scares"> 驚かし演出（顔が出る）</label>
+      <div class="menu-title-only">
+        <button id="btn-reset" class="btn ghost small">記録を消す</button>
+        <button id="btn-menu-close" class="btn primary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 驚かし -->
+  <div id="scare" class="scare" aria-hidden="true">
+    <svg class="face" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="skin" cx="50%" cy="42%" r="55%">
+          <stop offset="0" stop-color="#d9dcd3"/>
+          <stop offset="0.75" stop-color="#8d9189"/>
+          <stop offset="1" stop-color="#2d2f2b"/>
+        </radialGradient>
+        <filter id="blur"><feGaussianBlur stdDeviation="1.6"/></filter>
+      </defs>
+      <rect width="400" height="600" fill="#000"/>
+      <g filter="url(#blur)">
+        <ellipse cx="208" cy="300" rx="62" ry="112" fill="url(#skin)"/>
+        <ellipse cx="188" cy="290" rx="12" ry="7" fill="#000"/>
+        <ellipse cx="230" cy="290" rx="12" ry="7" fill="#000"/>
+        <circle cx="190" cy="290" r="1.8" fill="#e8e8e0"/>
+        <circle cx="228" cy="290" r="1.8" fill="#e8e8e0"/>
+        <ellipse cx="209" cy="384" rx="10" ry="6" fill="#1a0505"/>
+        <path d="M204 110 Q110 112 80 220 L36 600 L172 600 L178 330 Q180 230 204 170 Z" fill="#050404"/>
+        <path d="M206 110 Q296 112 326 220 L366 600 L252 600 L246 330 Q238 230 210 170 Z" fill="#050404"/>
+        <path d="M200 160 Q196 300 214 600 M222 170 Q236 320 228 600 M190 200 Q206 330 196 470" fill="none" stroke="#050404" stroke-width="2.5"/>
+      </g>
+    </svg>
+    <img class="scare-img" src="assets/scare.webp" alt="" onerror="this.remove()">
+    <p class="whisper">……みつけた</p>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
