@@ -46,6 +46,8 @@ npm run ios        # Xcode で開く（Mac のみ）
 npm test           # 自動プレイテスト
 ```
 
+オンラインのテスト版は `node tools/build-web-preview.mjs` で `dist/web-preview/` に作り、Claude の公開ページ（Artifact）として出しています（フォントは Google Fonts から読む版）。
+
 `npm run build` でアプリに入れるファイルが `www/` にまとまります（フォントも同梱）。ゲームを変更したら `npm run sync` で iOS / Android に反映してください。
 
 ## 新しい夜（ステージ）の作り方
