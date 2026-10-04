@@ -71,16 +71,3 @@ edit('ios/App/App/Info.plist', (s) => {
   s = plistSet(s, 'ITSAppUsesNonExemptEncryption', '<false/>'); // 暗号化機能なし（輸出コンプライアンス）
   return s;
 });
-
-edit('ios/App/App/SceneDelegate.swift', (s) => {
-  if (s.includes('GameViewController')) return s;
-  s = s.replace('window?.rootViewController = CAPBridgeViewController()', 'window?.rootViewController = GameViewController()');
-  return `${s.trimEnd()}
-
-// ホームインジケーターを自動で隠し、画面端のスワイプでゲーム操作が中断されにくくする
-class GameViewController: CAPBridgeViewController {
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
-    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
-}
-`;
-});
