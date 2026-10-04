@@ -1,11 +1,15 @@
-// 効果音と環境音はすべて Web Audio で合成する（音声素材ファイル不要）。
-// iOS Safari はユーザー操作の中で unlock() を呼ぶまで音が出ない。
+// BGM と効果音。音声ファイル（docs/ASSETS.md の規格）があればそれを鳴らし、
+// 無いものは Web Audio で合成した仮の音で代用する。
+// iOS はユーザー操作の中で unlock() を呼ぶまで音が出ない。
 
 let ctx = null;
 let master = null;
 let enabled = true;
-let amb = null;
+let bgm = null;
 let noiseBuf = null;
+let seFiles = {}; // { found: 'assets/audio/se_found.m4a', ... }
+const loading = new Map(); // url -> Promise<AudioBuffer|null>
+const decoded = new Map(); // url -> AudioBuffer
 
 const VOLUME = 0.9;
 
@@ -22,8 +26,39 @@ export function unlock() {
     master = ctx.createGain();
     master.gain.value = enabled ? VOLUME : 0;
     master.connect(ctx.destination);
+    Object.values(seFiles).forEach(load);
   }
   if (ctx.state === 'suspended') ctx.resume();
+}
+
+// scenes/index.json の "audio.se" を登録する
+export function configure(se = {}) {
+  seFiles = se;
+  if (ctx) Object.values(seFiles).forEach(load);
+}
+
+function load(url) {
+  if (!loading.has(url)) {
+    loading.set(url, fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(url))))
+      .then((b) => ctx.decodeAudioData(b))
+      .then((buf) => { decoded.set(url, buf); return buf; })
+      .catch((err) => { console.warn('音声を読み込めません:', err.message); return null; }));
+  }
+  return loading.get(url);
+}
+
+// 効果音ファイルがあれば鳴らして true を返す
+function playFile(name, vol = 1) {
+  const buf = ctx && decoded.get(seFiles[name]);
+  if (!buf) return false;
+  const src = ctx.createBufferSource();
+  const g = ctx.createGain();
+  g.gain.value = vol;
+  src.buffer = buf;
+  src.connect(g).connect(master);
+  src.start();
+  return true;
 }
 
 function noise() {
@@ -54,15 +89,54 @@ function osc(type, freq) {
   return o;
 }
 
-// 低いうなりと隙間風。ときどき遠くで鈴が鳴る。
-export function startAmbience() {
-  if (!ctx || amb) return;
-  const t = ctx.currentTime;
+// ---------------------------------------------------------------- BGM
+
+// def: { src, loopStart?, loopEnd?, volume? }。def が無く synth なら合成の環境音（うなりと隙間風）。
+export function playBgm(def, { synth = false } = {}) {
+  if (!ctx) return;
+  const key = def?.src || (synth ? 'synth' : null);
+  if (bgm?.key === key) return;
+  stopBgm();
+  if (!key) return;
   const out = ctx.createGain();
   out.gain.value = 0.0001;
-  out.gain.setTargetAtTime(0.6, t, 1.5);
+  out.gain.setTargetAtTime(def?.volume ?? 0.6, ctx.currentTime, 1.0);
   out.connect(master);
+  const cur = { key, out, srcs: [], timer: 0 };
+  bgm = cur;
+  if (key === 'synth') return synthAmbience(cur);
+  load(def.src).then((buf) => {
+    if (bgm !== cur) return;
+    if (!buf) return synthAmbience(cur);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    if (def.loopEnd) {
+      src.loopStart = def.loopStart || 0;
+      src.loopEnd = def.loopEnd;
+    }
+    src.connect(out);
+    src.start();
+    cur.srcs.push(src);
+  });
+}
 
+export function stopBgm() {
+  if (!bgm) return;
+  const cur = bgm;
+  bgm = null;
+  clearTimeout(cur.timer);
+  cur.out.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.4);
+  setTimeout(() => {
+    cur.srcs.forEach((s) => { try { s.stop(); } catch { /* 停止済み */ } });
+    cur.out.disconnect();
+  }, 2000);
+}
+
+// 低いうなりと隙間風。ときどき遠くで鈴が鳴る。
+function synthAmbience(cur) {
+  const t = ctx.currentTime;
+  const out = cur.out;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = 320;
@@ -94,34 +168,22 @@ export function startAmbience() {
   lfo2.connect(lfo2Depth).connect(windGain.gain);
   lfo2.start(t);
 
-  amb = { out, srcs: [...tones, wind, lfo1, lfo2], timer: 0 };
+  cur.srcs.push(...tones, wind, lfo1, lfo2);
+  const scheduleBell = () => {
+    cur.timer = setTimeout(() => {
+      if (bgm !== cur) return;
+      bell(0.05, 1200 + Math.random() * 500);
+      scheduleBell();
+    }, 15000 + Math.random() * 25000);
+  };
   scheduleBell();
 }
 
-function scheduleBell() {
-  if (!amb) return;
-  amb.timer = setTimeout(() => {
-    if (!amb) return;
-    bell(0.05, 1200 + Math.random() * 500);
-    scheduleBell();
-  }, 15000 + Math.random() * 25000);
-}
-
-export function stopAmbience() {
-  if (!amb) return;
-  const a = amb;
-  amb = null;
-  clearTimeout(a.timer);
-  a.out.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.4);
-  setTimeout(() => {
-    a.srcs.forEach((s) => { try { s.stop(); } catch { /* 停止済み */ } });
-    a.out.disconnect();
-  }, 2000);
-}
+// ---------------------------------------------------------------- 効果音
 
 // 金属的な非整数倍音で鈴・りんの音を作る
 export function bell(vol = 0.2, f = 880) {
-  if (!ctx) return;
+  if (!ctx || playFile('bell', vol * 4)) return;
   const t = ctx.currentTime;
   for (const [ratio, amp] of [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.9, 0.12]]) {
     const o = osc('sine', f * ratio);
@@ -132,13 +194,13 @@ export function bell(vol = 0.2, f = 880) {
 }
 
 export function found() {
-  if (!ctx) return;
+  if (!ctx || playFile('found')) return;
   bell(0.16, 1046.5);
   setTimeout(() => bell(0.12, 1568), 110);
 }
 
 export function miss() {
-  if (!ctx) return;
+  if (!ctx || playFile('miss')) return;
   const t = ctx.currentTime;
   const o = osc('sine', 110);
   o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
@@ -149,7 +211,7 @@ export function miss() {
 
 // 床板のきしみ
 export function creak() {
-  if (!ctx) return;
+  if (!ctx || playFile('creak')) return;
   const t = ctx.currentTime;
   const o = osc('sawtooth', 90 + Math.random() * 40);
   const wobble = osc('sine', 7);
@@ -169,7 +231,7 @@ export function creak() {
 
 // 驚かし用の金切り声
 export function scare() {
-  if (!ctx) return;
+  if (!ctx || playFile('scare')) return;
   const t = ctx.currentTime;
   const n = noise();
   const hp = ctx.createBiquadFilter();
@@ -185,4 +247,19 @@ export function scare() {
     o.start(t);
     o.stop(t + 1.3);
   }
+}
+
+export function hint() {
+  if (!ctx || playFile('hint')) return;
+  bell(0.15, 660);
+}
+
+export function clear() {
+  if (!ctx || playFile('clear')) return;
+  [784, 988, 1175].forEach((f, i) => setTimeout(() => bell(0.12, f), i * 180));
+}
+
+// ストーリーの頁送り（ファイルが無ければ無音）
+export function page() {
+  if (ctx) playFile('page', 0.6);
 }

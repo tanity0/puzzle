@@ -3,19 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0b0908">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="かくれさま">
-  <meta name="description" content="和風ホラー・アイテム探しゲーム「かくれさま —朧屋敷の神隠し—」">
   <title>かくれさま</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&family=Yuji+Syuku&display=swap">
+  <!-- フォントはアプリに同梱（オフラインでも表示できるように）。tools/build-www.mjs が fonts/ を作る -->
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -31,6 +21,7 @@
         <button id="btn-start" class="btn primary">はじめる</button>
         <button id="btn-select" class="btn">夜を選ぶ</button>
         <button id="btn-settings" class="btn ghost">設定</button>
+        <button id="btn-quit-app" class="btn ghost">終了</button>
       </nav>
       <p id="boot-error" class="boot-error" hidden></p>
       <p class="caution">※ 驚かす演出と音があります。設定で弱められます。</p>
@@ -121,6 +112,8 @@
       </div>
       <label class="toggle"><input type="checkbox" id="opt-sound"> 音を鳴らす</label>
       <label class="toggle"><input type="checkbox" id="opt-scares"> 驚かし演出（顔が出る）</label>
+      <label class="toggle only-mobile"><input type="checkbox" id="opt-haptics"> 振動</label>
+      <label class="toggle only-desktop"><input type="checkbox" id="opt-fullscreen"> フルスクリーン（F11）</label>
       <div class="menu-title-only">
         <button id="btn-reset" class="btn ghost small">記録を消す</button>
         <button id="btn-menu-close" class="btn primary">閉じる</button>
@@ -152,10 +145,16 @@
         <path d="M200 160 Q196 300 214 600 M222 170 Q236 320 228 600 M190 200 Q206 330 196 470" fill="none" stroke="#050404" stroke-width="2.5"/>
       </g>
     </svg>
-    <img class="scare-img" src="assets/scare.webp" alt="" onerror="this.remove()">
     <p class="whisper">……みつけた</p>
   </div>
 
+  <!-- 縦持ちにされたとき（端末の回転ロックが効かない環境向け）の案内 -->
+  <div class="rotate-hint" aria-hidden="true">
+    <p>端末を横向きにしてください</p>
+  </div>
+
+  <!-- iOS / Android でプラグインを呼ぶための Capacitor 本体（tools/build-www.mjs が置く） -->
+  <script src="js/capacitor.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

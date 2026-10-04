@@ -1,9 +1,24 @@
-// ゲームを自動で1周遊ぶスモークテスト。
-// 実行: python3 -m http.server 8765 & node tools/smoke-test.mjs [出力フォルダ]
+// ゲームを自動で1周遊ぶスモークテスト（開発サーバーは自動で起動する）。
+// 実行: npm test   または   node tools/smoke-test.mjs [スクリーンショット出力フォルダ]
+import { spawn } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 
-const BASE = process.env.BASE || 'http://localhost:8765/';
-const OUT = process.argv[2] || '.';
+const PORT = 8765;
+const BASE = process.env.BASE || `http://localhost:${PORT}/`;
+const server = process.env.BASE ? null : spawn(process.execPath, [new URL('./serve.mjs', import.meta.url).pathname, String(PORT)], { stdio: 'ignore' });
+for (let i = 0; i < 50; i++) {
+  try {
+    await fetch(BASE);
+    break;
+  } catch {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+// スクリーンショットの保存先（省略時は一時フォルダ）
+const OUT = process.argv[2] || mkdtempSync(join(tmpdir(), 'kakuresama-'));
 const errors = [];
 
 async function run(name, viewport, opts = {}) {
@@ -126,9 +141,21 @@ async function runEditor() {
 }
 
 await runEditor();
-await run('desktop', { width: 1280, height: 800 });
-await run('phone-land', { width: 844, height: 390 }, { touch: true });
-await run('phone-port', { width: 390, height: 844 }, { touch: true });
+// 横持ち専用：縦にすると回転を促す表示が出ること
+async function runPortrait() {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await page.goto(BASE);
+  if (!(await page.isVisible('.rotate-hint'))) errors.push('portrait: 回転の案内が出ない');
+  await browser.close();
+}
+
+await run('desktop', { width: 1280, height: 720 });
+await run('phone', { width: 844, height: 390 }, { touch: true });
+await run('phone-max', { width: 932, height: 430 }, { touch: true });
+await run('tablet', { width: 1180, height: 820 }, { touch: true });
+await runPortrait();
+server?.kill();
 
 if (errors.length) {
   console.log('NG\n' + errors.join('\n'));

@@ -1,0 +1,13 @@
+{
+  "appId": "com.tanity0.kakuresama",
+  "appName": "かくれさま",
+  "webDir": "www",
+  "backgroundColor": "#0b0908",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "android": {
+    "backgroundColor": "#0b0908"
+  }
+}

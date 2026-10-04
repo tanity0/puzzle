@@ -1,39 +1,52 @@
 # かくれさま —朧屋敷の神隠し—
 
-和風ホラーのアイテム探しゲーム（ヒドゥンオブジェクト）です。ブラウザで動くので、iPhone の Safari でも遊べます（ホーム画面に追加すると全画面アプリとして起動します）。
+和風ホラーのアイテム探しゲーム（ヒドゥンオブジェクト）です。**横持ち専用**で、次のストアで販売するアプリとして作っています。
+
+| 販売先 | 端末 | 仕組み |
+|---|---|---|
+| App Store | iPhone / iPad | Capacitor（`ios/`） |
+| Google Play | Android スマホ・タブレット | Capacitor（`android/`） |
+| Steam | Windows / macOS | Electron（`desktop/`） |
+
+ゲーム本体（`index.html`・`js/`・`css/`・`scenes/`）は 3 つで共通です。
 
 > 祖母・千代が消えた。手帳の最後の頁には、震える字でこう書かれていた。
 > 『かくれさまに とられたものを ぜんぶ見つけなさい』
 
+## ドキュメント
+
+- **[docs/ASSETS.md](docs/ASSETS.md) — 必要な素材と規格（背景画・アイコン・ストア画像・BGM・効果音）**
+- [docs/ART_GUIDE.md](docs/ART_GUIDE.md) — GPT で背景画を作るためのプロンプト集と手順
+- [docs/RELEASE.md](docs/RELEASE.md) — 各ストアで販売するまでの手順
+
 ## 遊び方
 
-- 下（横画面では右）の一覧にある物を、絵の中から探してタップ
-- ピンチ／ホイールで拡大、ドラッグで移動
+- 一覧にある物を、絵の中から探してタップ（クリック）
+- ピンチ／マウスホイールで拡大、ドラッグで移動
 - **お札**：ヒント。探し物の場所を照らす（最大3枚、45秒で1枚回復）
 - **怨（おん）ゲージ**：何もない所をタップするとたまる。5回たまると「かくれさま」が現れ、タイムが10秒増える
 - 赤枠のアイテムは **物語アイテム**。見つけると祖母の秘密が少しずつ明かされる
 - 懐中電灯の夜は、指（マウス）の周りしか見えない
 - クリア時間・見誤り・お札の使用数で S〜C の評価
 
-驚かし演出（顔が出る）と音は、設定でオフにできます。
+驚かし演出（顔が出る）・音・振動（スマホ）・フルスクリーン（PC）は設定で切り替えられます。
+PC ではキーボードも使えます（H：ヒント、＋／－：拡大縮小、Esc：メニュー、F11：フルスクリーン）。
 
-## 起動方法
+## 開発
 
-ES モジュールと `fetch` を使っているため、`index.html` を直接開くのではなく、ローカルサーバー経由で開いてください。
+Node.js 22 以上が必要です。
 
 ```sh
-python3 -m http.server 8000
-# → http://localhost:8000/          ゲーム
-# → http://localhost:8000/editor.html シーンエディタ
+npm install
+npm run serve      # http://localhost:8000/  ゲーム（ブラウザで確認）
+                   # http://localhost:8000/editor.html  シーンエディタ
+npm run desktop    # PC 版を起動
+npm run android    # Android Studio で開く
+npm run ios        # Xcode で開く（Mac のみ）
+npm test           # 自動プレイテスト
 ```
 
-ビルドは不要です。
-
-### iPhone で遊ぶ
-
-1. GitHub の Settings → Pages → Source を **GitHub Actions** にする（初回のみ）
-2. `main` ブランチに push すると `.github/workflows/pages.yml` が自動で公開する
-3. iPhone の Safari で公開 URL を開き、共有 → **ホーム画面に追加**
+`npm run build` でアプリに入れるファイルが `www/` にまとまります（フォントも同梱）。ゲームを変更したら `npm run sync` で iOS / Android に反映してください。
 
 ## 新しい夜（ステージ）の作り方
 
@@ -73,26 +86,32 @@ python3 -m http.server 8000
 ## ファイル構成
 
 ```
-index.html            ゲーム本体
-editor.html           シーンエディタ
-css/                  スタイル
-js/main.js            画面遷移・ゲーム進行
-js/viewport.js        パン／ピンチズーム／タップ判定
-js/hit.js             当たり判定（ゲームとエディタで共有）
-js/audio.js           効果音・環境音（Web Audio で合成、音声ファイル不要）
-js/storage.js         セーブデータ
-js/editor.js          シーンエディタ
-scenes/               各夜のデータと背景画
-docs/ART_GUIDE.md     GPT 用プロンプト集と作画手順
-tools/smoke-test.mjs  自動プレイテスト（Playwright）
-tools/make-icons.mjs  アイコン PNG の書き出し
+index.html                 ゲーム本体（3 ストア共通）
+editor.html                シーンエディタ（開発用。アプリには入らない）
+css/  js/  scenes/         ゲームのコードとデータ
+  js/main.js               画面遷移・ゲーム進行
+  js/viewport.js           パン／ピンチズーム／タップ判定
+  js/hit.js                当たり判定（ゲームとエディタで共有）
+  js/audio.js              BGM・効果音（ファイルが無ければ合成音）
+  js/platform.js           iOS / Android / PC の違い（セーブ・振動・実績・終了など）
+  js/storage.js            セーブデータ
+assets/                    タイトル画・驚かし画像・音（任意素材）
+resources/                 アイコン・起動画面の原画（npm run assets で各サイズを生成）
+ios/  android/             Capacitor のネイティブプロジェクト
+desktop/                   Electron（Steam 版）のメインプロセス
+capacitor.config.json      アプリ ID・名前
+docs/                      素材の規格・作画ガイド・販売手順
+tools/build-www.mjs        アプリに入れるファイルを www/ にまとめる
+tools/patch-native.mjs     ネイティブプロジェクトの設定（横画面固定など）
+tools/smoke-test.mjs       自動プレイテスト
+tools/electron-smoke.mjs   PC 版の起動テスト
 ```
 
 ## テスト
 
 ```sh
-python3 -m http.server 8765 &
-node tools/smoke-test.mjs /tmp/shots   # PC・スマホ横・スマホ縦で1周クリアし、エディタも確認
+npm test                                  # PC・スマホ・タブレットの横画面で1周クリアし、エディタも確認
+xvfb-run -a node tools/electron-smoke.mjs # PC 版（Electron）の起動確認（Linux）
 ```
 
-Playwright が必要です（`npm i -D playwright`）。
+GitHub Actions では、これに加えて Android・iOS（シミュレーター）・PC 版（Windows / macOS / Linux）のビルドが通るかを確認しています。

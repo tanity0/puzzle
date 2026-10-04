@@ -1,0 +1,90 @@
+{
+  "name": "kakuresama",
+  "productName": "かくれさま",
+  "version": "0.1.0",
+  "description": "和風ホラー・アイテム探しゲーム「かくれさま —朧屋敷の神隠し—」",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "build": "node tools/build-www.mjs",
+    "serve": "node tools/serve.mjs",
+    "test": "node tools/build-www.mjs && node tools/smoke-test.mjs",
+    "sync": "node tools/build-www.mjs && cap sync && node tools/patch-native.mjs",
+    "android": "npm run sync && cap open android",
+    "ios": "npm run sync && cap open ios",
+    "desktop": "node tools/build-www.mjs && electron .",
+    "dist:desktop": "node tools/build-www.mjs && electron-builder",
+    "assets": "capacitor-assets generate --assetPath resources --ios --android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "@fontsource/shippori-mincho": "^5.3.0",
+    "@fontsource/yuji-syuku": "^5.3.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "playwright": "1.56.1"
+  },
+  "build": {
+    "appId": "com.tanity0.kakuresama",
+    "productName": "Kakuresama",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources/desktop"
+    },
+    "files": [
+      "desktop/**",
+      "www/**",
+      "package.json",
+      "!node_modules/@capacitor/**"
+    ],
+    "asarUnpack": [
+      "node_modules/steamworks.js/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/desktop/icon.png"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.adventure-games",
+      "icon": "resources/desktop/icon.png"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "icon": "resources/desktop/icon.png"
+    }
+  }
+}

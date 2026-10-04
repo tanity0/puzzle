@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">かくれさま</string>
+    <string name="title_activity_main">かくれさま</string>
+    <string name="package_name">com.tanity0.kakuresama</string>
+    <string name="custom_url_scheme">com.tanity0.kakuresama</string>
+</resources>

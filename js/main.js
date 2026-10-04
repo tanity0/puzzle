@@ -1,5 +1,6 @@
 import * as store from './storage.js';
 import * as sfx from './audio.js';
+import * as platform from './platform.js';
 import { Viewport } from './viewport.js';
 import { bbox, hitTest, svgEl } from './hit.js';
 
@@ -17,8 +18,26 @@ const TAP_TOLERANCE = 14; // 画面上のpx。指で押しやすくする余白
 const ENDING = ['— 終 —'];
 const TO_BE_CONTINUED = ['（つづく）', '次の夜は、まだ準備中です。'];
 
-const save = store.load();
+// 各夜のクリアで解除される実績。ID は Steam の実績 API 名と揃える。
+const ACHIEVEMENTS = {
+  clear: (id) => `CLEAR_${id.toUpperCase()}`, // CLEAR_CH1 〜 CLEAR_CH6
+  rankS: 'RANK_S', // S 評価をとる
+  noHint: 'NO_HINT', // お札を使わずにクリア
+  noMiss: 'NO_MISS', // 見誤りなしでクリア
+  scared: 'FOUND_BY_KAKURESAMA', // かくれさまに見つかる
+};
+
+const save = await store.load();
 sfx.setEnabled(save.settings.sound);
+platform.setHaptics(save.settings.haptics);
+document.documentElement.dataset.platform = platform.kind;
+
+function achieve(id) {
+  if (PREVIEW || save.achievements[id]) return;
+  save.achievements[id] = true;
+  store.save(save);
+  platform.unlockAchievement(id);
+}
 
 const ui = {
   app: $('#app'),
@@ -182,7 +201,7 @@ function playStory(lines, title = '') {
       if (i >= lines.length) return end();
       typing = typewrite(textEl, lines[i++], () => { typing = null; });
     };
-    const onTap = () => { sfx.unlock(); next(); };
+    const onTap = () => { sfx.unlock(); sfx.page(); next(); };
     const onSkip = (e) => { e.stopPropagation(); end(); };
     function end() {
       screen.removeEventListener('click', onTap);
@@ -311,6 +330,7 @@ class Game {
   onFound(t) {
     this.found.add(t.id);
     sfx.found();
+    platform.vibrate('light');
     this.mark(t);
     ui.list.querySelector(`[data-id="${CSS.escape(t.id)}"]`)?.classList.add('found');
     if (this.hintEl?.dataset.id === t.id) this.clearHint();
@@ -341,6 +361,7 @@ class Game {
 
   onMiss(sp) {
     sfx.miss();
+    platform.vibrate('medium');
     ripple(sp);
     this.misses++;
     this.grudge++;
@@ -353,6 +374,8 @@ class Game {
     this.grudge = 0;
     this.penalty += SCARE_PENALTY;
     this.locked = true;
+    platform.vibrate('heavy');
+    achieve(ACHIEVEMENTS.scared);
     await jumpscare();
     if (!this.done) this.locked = false;
     this.updateHud();
@@ -373,7 +396,7 @@ class Game {
     const t = rest[Math.floor(Math.random() * rest.length)];
     this.ofuda--;
     this.hints++;
-    sfx.bell(0.15, 660);
+    sfx.hint();
     this.clearHint();
     const b = bbox(t);
     const c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -437,9 +460,13 @@ function nextPlayable(i) {
   return n < meta.scenes.length && isPlayable(meta.scenes[n]) ? n : -1;
 }
 
+// scene.json の "bgm": { "src": "bgm.m4a", "loopStart": 秒, "loopEnd": 秒 }（パスは各夜のフォルダから）
+const bgmOf = (scene) => (scene.bgm?.src ? { ...scene.bgm, src: (scene.base || '') + scene.bgm.src } : null);
+
 async function runScene(i) {
   const scene = meta.scenes[i];
   sfx.unlock();
+  sfx.playBgm(bgmOf(scene), { synth: true });
   await playStory(scene.intro, scene.title);
   startPlay(scene, scene.base + scene.image, i);
 }
@@ -448,7 +475,7 @@ function startPlay(scene, src, index) {
   game?.destroy();
   show('screen-play');
   $('#play-title').textContent = scene.title || '';
-  sfx.startAmbience();
+  sfx.playBgm(bgmOf(scene), { synth: true });
   const g = new Game(scene, (res) => onClear(scene, index, res, src));
   game = g;
   g.start(src).catch((err) => {
@@ -456,11 +483,11 @@ function startPlay(scene, src, index) {
     alert(err.message);
     if (!PREVIEW) openSelect();
   });
-  if (innerHeight > innerWidth && innerWidth < 700) toast('横向きにすると遊びやすくなります', 2600);
 }
 
 function onClear(scene, index, res, src) {
-  sfx.stopAmbience();
+  sfx.stopBgm();
+  sfx.clear();
   if (index >= 0) {
     const prev = save.cleared[scene.id];
     const better = !prev
@@ -468,6 +495,10 @@ function onClear(scene, index, res, src) {
       || (res.rank === prev.rank && res.time < prev.time);
     if (better) save.cleared[scene.id] = { rank: res.rank, time: Math.round(res.time) };
     store.save(save);
+    achieve(ACHIEVEMENTS.clear(scene.id));
+    if (res.rank === 'S') achieve(ACHIEVEMENTS.rankS);
+    if (res.hints === 0) achieve(ACHIEVEMENTS.noHint);
+    if (res.misses === 0) achieve(ACHIEVEMENTS.noMiss);
   }
   $('#result-title').textContent = scene.title || '';
   $('#result-rank').textContent = res.rank;
@@ -494,7 +525,7 @@ function onClear(scene, index, res, src) {
 function openSelect() {
   game?.destroy();
   game = null;
-  sfx.stopAmbience();
+  sfx.playBgm(meta.audio?.bgm?.title);
   const ul = $('#night-list');
   ul.innerHTML = '';
   meta.scenes.forEach((s, i) => {
@@ -505,6 +536,11 @@ function openSelect() {
     const unlocked = isUnlocked(i);
     const rec = save.cleared[s.id];
     btn.disabled = !playable || !unlocked;
+    if (playable && unlocked) {
+      // 背景画をそのままサムネイルに使う
+      btn.classList.add('has-thumb');
+      btn.style.backgroundImage = `linear-gradient(90deg, rgba(14, 11, 9, 0.96) 35%, rgba(14, 11, 9, 0.55)), url("${s.base}${s.image}")`;
+    }
     const n = document.createElement('span');
     n.className = 'n';
     n.textContent = kanjiNum(i + 1);
@@ -548,6 +584,8 @@ function openMenu(inGame) {
   $('#menu-title').textContent = inGame ? '中断' : '設定';
   $('#opt-sound').checked = save.settings.sound;
   $('#opt-scares').checked = save.settings.scares;
+  $('#opt-haptics').checked = save.settings.haptics;
+  $('#opt-fullscreen').checked = save.settings.fullscreen;
   game?.setPaused(true);
   ui.menu.hidden = false;
 }
@@ -559,6 +597,11 @@ function closeMenu() {
 
 function wire() {
   $('#btn-start').onclick = startFromTitle;
+  // タイトル画面を最初に触ったときにタイトル BGM を鳴らし始める
+  $('#screen-title').addEventListener('pointerdown', () => {
+    sfx.unlock();
+    sfx.playBgm(meta.audio?.bgm?.title);
+  });
   $('#btn-select').onclick = () => { sfx.unlock(); openSelect(); };
   $('#btn-settings').onclick = () => openMenu(false);
   $('#btn-select-back').onclick = () => { show('screen-title'); refreshTitle(); };
@@ -594,6 +637,22 @@ function wire() {
     save.settings.scares = e.target.checked;
     store.save(save);
   };
+  $('#opt-haptics').onchange = (e) => {
+    save.settings.haptics = e.target.checked;
+    platform.setHaptics(save.settings.haptics);
+    store.save(save);
+  };
+  $('#opt-fullscreen').onchange = (e) => setFullscreen(e.target.checked);
+  $('#btn-quit-app').hidden = !platform.canQuit;
+  $('#btn-quit-app').onclick = () => platform.quit();
+
+  // PC：キーボード操作
+  document.addEventListener('keydown', onKey);
+  // Android：戻るボタン
+  platform.onBackButton(onBack);
+  platform.onPause(() => {
+    if (game && !game.done && ui.menu.hidden) openMenu(true);
+  });
 
   // iOS Safari のページズームを抑止
   document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -602,7 +661,54 @@ function wire() {
   });
 }
 
+function setFullscreen(on) {
+  save.settings.fullscreen = on;
+  store.save(save);
+  platform.setFullscreen(on);
+}
+
+function activeScreen() {
+  return document.querySelector('.screen.active')?.id;
+}
+
+function onKey(e) {
+  if (e.repeat) return;
+  if (e.key === 'F11' || (e.key === 'Enter' && e.altKey)) {
+    e.preventDefault();
+    setFullscreen(!save.settings.fullscreen);
+    return;
+  }
+  if (e.key === 'Escape') return onBack();
+  if (!ui.menu.hidden || activeScreen() !== 'screen-play') return;
+  const k = e.key.toLowerCase();
+  if (k === 'h') game?.hint();
+  else if (k === '+' || k === '=' || k === ';') vp.zoomBy(1.4);
+  else if (k === '-') vp.zoomBy(1 / 1.4);
+}
+
+// Esc / Android の戻るボタン：メニューを閉じる → 中断メニュー → 前の画面へ
+function onBack() {
+  if (!ui.menu.hidden) return closeMenu();
+  const screen = activeScreen();
+  if (screen === 'screen-play') return openMenu(true);
+  if (screen === 'screen-select') {
+    show('screen-title');
+    return refreshTitle();
+  }
+  if (screen === 'screen-result') return openSelect();
+  if (screen === 'screen-title' && platform.kind === 'android') platform.quit();
+}
+
 // ---------------------------------------------------------------- 起動
+
+// 驚かし画像（scenes/index.json の "scare"）があれば SVG の顔の代わりに使う
+function loadScareImage(src) {
+  const img = new Image();
+  img.className = 'scare-img';
+  img.alt = '';
+  img.onload = () => ui.scare.insertBefore(img, ui.scare.querySelector('.whisper'));
+  img.src = src;
+}
 
 // エディタの「テストプレイ」から開かれた場合：シーンと画像を postMessage で受け取る
 function bootPreview() {
@@ -619,6 +725,7 @@ function bootPreview() {
 async function boot() {
   wire();
   if (PREVIEW) return bootPreview();
+  if (platform.isDesktop) platform.setFullscreen(save.settings.fullscreen);
   try {
     const idx = await loadJSON('scenes/index.json');
     const scenes = await Promise.all(idx.scenes.map(async (id) => {
@@ -631,6 +738,9 @@ async function boot() {
       }
     }));
     meta = { ...idx, scenes: scenes.filter(Boolean) };
+    if (idx.scare) loadScareImage(idx.scare);
+    if (idx.titleImage) $('#screen-title').style.setProperty('--title-image', `url("${idx.titleImage}")`);
+    sfx.configure(idx.audio?.se);
   } catch (err) {
     console.error(err);
     const el = $('#boot-error');
