@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" width="1536" height="1024">
-  <!-- 仮の背景（GPT で描いた絵に差し替える前提のプレースホルダー）。座標は scene.json の当たり判定と対応。 -->
+  <!-- 依頼 No.001「祖母の家」の仮の写真（GPT の写真に差し替える前提）。座標は request.json の当たり判定と対応。 -->
   <defs>
     <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#2e2620"/>
@@ -48,12 +48,17 @@
   <rect x="34" y="168" width="486" height="432" fill="#0f0c0a"/>
   <rect x="46" y="178" width="462" height="418" fill="url(#shoji)"/>
   <!-- 障子に映る人影 -->
-  <path d="M352 300 Q352 262 384 262 Q416 262 416 300 Q416 330 400 342 L452 380 L470 596 L300 596 L318 380 L368 342 Q352 330 352 300 Z" fill="#14110d" opacity="0.38" filter="url(#soft)"/>
+  <g><path d="M352 300 Q352 262 384 262 Q416 262 416 300 Q416 330 400 342 L452 380 L470 596 L300 596 L318 380 L368 342 Q352 330 352 300 Z" fill="#14110d" opacity="0.42" filter="url(#soft)"/></g>
   <g stroke="#2a241d" stroke-width="4">
     <path d="M112 178V596M178 178V596M244 178V596M310 178V596M376 178V596M442 178V596"/>
     <path d="M46 230H508M46 282H508M46 334H508M46 386H508M46 438H508M46 490H508M46 542H508"/>
   </g>
-  <rect x="273" y="178" width="8" height="418" fill="#0f0c0a"/>
+  <!-- 奥の部屋へ続く障子が少し開いている -->
+  <rect x="266" y="178" width="20" height="418" fill="#040303"/>
+  <g>
+    <path d="M270 383 Q276 377 283 383 Q276 388 270 383 Z" fill="#b9b3a3"/>
+    <circle cx="276.5" cy="383" r="2.6" fill="#050404"/>
+  </g>
 
   <!-- 柱 -->
   <g fill="#1a130f">
@@ -161,6 +166,11 @@
     <path d="M258 908 L296 952" stroke="#2a1e14" stroke-width="11" stroke-linecap="round"/>
     <ellipse cx="240" cy="888" rx="30" ry="26" fill="#6b7076" stroke="#2a1e14" stroke-width="6"/>
     <path d="M226 878 Q236 870 248 874" fill="none" stroke="#a9aeb3" stroke-width="3"/>
+    <g>
+      <ellipse cx="243" cy="892" rx="9" ry="12" fill="#d2d4cc" opacity="0.55"/>
+      <path d="M233 884 Q243 874 253 884 L253 904 L249 896 L237 896 L233 904 Z" fill="#141210" opacity="0.7"/>
+      <circle cx="240" cy="891" r="1.3" fill="#111"/><circle cx="246" cy="891" r="1.3" fill="#111"/>
+    </g>
   </g>
 
   <!-- 鍵 key -->
@@ -203,14 +213,49 @@
     <ellipse cx="1120" cy="830" rx="20" ry="5" fill="#1a2024"/>
   </g>
 
-  <!-- 古い写真 photo（ストーリーアイテム） -->
-  <g id="photo" transform="rotate(-12 1420 720)">
-    <rect x="1394" y="698" width="52" height="42" fill="#8a7a5a" stroke="#d8ccb0" stroke-width="3"/>
-    <circle cx="1410" cy="712" r="5" fill="#3a3020"/>
-    <path d="M1402 736 Q1410 718 1418 736 Z" fill="#3a3020"/>
-    <circle cx="1430" cy="720" r="4" fill="#050404"/>
-    <path d="M1424 736 Q1430 724 1436 736 Z" fill="#3a3020"/>
+
+
+  <!-- 壊れたテレビ（台の上）。画面のひびは除霊前後とも -->
+  <g id="tv">
+    <rect x="884" y="742" width="212" height="44" fill="#2a1d13"/>
+    <rect x="892" y="786" width="10" height="20" fill="#1a120c"/><rect x="1078" y="786" width="10" height="20" fill="#1a120c"/>
+    <rect x="900" y="606" width="180" height="138" rx="8" fill="#3b2a1c"/>
+    <rect x="912" y="620" width="122" height="106" rx="14" fill="#0f1211"/>
+    <path d="M920 630 Q972 616 1026 632" fill="none" stroke="#2c3330" stroke-width="3" opacity="0.6"/>
+    <circle cx="1057" cy="645" r="7" fill="#1a120c"/><circle cx="1057" cy="668" r="7" fill="#1a120c"/>
+    <rect x="1046" y="690" width="22" height="26" fill="#241912"/>
+    <path d="M990 650 L1006 676 L998 690 L1016 714" fill="none" stroke="#3e4542" stroke-width="1.5"/>
+  </g>
+  <g>
+    <ellipse cx="962" cy="672" rx="20" ry="27" fill="#cfd6cf" opacity="0.2" filter="url(#soft)"/>
+    <ellipse cx="955" cy="667" rx="4" ry="5" fill="#050605" opacity="0.6"/>
+    <ellipse cx="969" cy="667" rx="4" ry="5" fill="#050605" opacity="0.6"/>
+    <ellipse cx="962" cy="688" rx="4" ry="6" fill="#050605" opacity="0.45"/>
+  </g>
+
+  <!-- 遺影（仏壇の下段） -->
+  <g id="portrait">
+    <rect x="1352" y="444" width="44" height="56" fill="#0a0806" stroke="#4a3a1c" stroke-width="2"/>
+    <rect x="1358" y="450" width="32" height="44" fill="#6e6a60"/>
+    <path d="M1352 444 L1364 456 M1396 444 L1384 456" stroke="#111" stroke-width="5"/>
+  </g>
+  <g>
+    <circle cx="1374" cy="466" r="9" fill="#050404"/>
+    <path d="M1364 494 Q1374 476 1384 494 Z" fill="#3a3530"/>
+  </g>
+
+  <!-- 奥の部屋からテレビへ続く濡れた足跡 -->
+  <g fill="#23231a" opacity="0.6">
+    <ellipse cx="318" cy="640" rx="8" ry="15" transform="rotate(-20 318 640)"/>
+    <ellipse cx="372" cy="676" rx="8" ry="15" transform="rotate(-60 372 676)"/>
+    <ellipse cx="440" cy="668" rx="8" ry="15" transform="rotate(-70 440 668)"/>
+    <ellipse cx="510" cy="712" rx="8" ry="15" transform="rotate(-65 510 712)"/>
+    <ellipse cx="584" cy="704" rx="8" ry="15" transform="rotate(-75 584 704)"/>
+    <ellipse cx="760" cy="748" rx="8" ry="15" transform="rotate(-80 760 748)"/>
+    <ellipse cx="840" cy="738" rx="8" ry="15" transform="rotate(-85 840 738)"/>
   </g>
 
   <rect width="1536" height="1024" fill="url(#vig)"/>
+  <!-- フィルムの日付写し込み -->
+  <text x="1420" y="990" font-family="monospace" font-size="30" fill="#e8863a" opacity="0.85" text-anchor="end">'24 8 12</text>
 </svg>

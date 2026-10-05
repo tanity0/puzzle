@@ -15,12 +15,10 @@ const GRUDGE_DECAY = 6; // 怨念が1つ減るまでの秒数
 const SCARE_PENALTY = 10; // 驚かし時のタイム加算（秒）
 const TAP_TOLERANCE = 14; // 画面上のpx。指で押しやすくする余白
 
-const ENDING = ['— 終 —'];
-const TO_BE_CONTINUED = ['（つづく）', '次の夜は、まだ準備中です。'];
-
-// 各夜のクリアで解除される実績。ID は Steam の実績 API 名と揃える。
+// 実績。ID は Steam の実績 API 名と揃える。
 const ACHIEVEMENTS = {
-  clear: (id) => `CLEAR_${id.toUpperCase()}`, // CLEAR_CH1 〜 CLEAR_CH6
+  clear: (id) => `CLEAR_${id.toUpperCase()}`, // 依頼の除霊：CLEAR_001 など
+  allTraces: 'ALL_TRACES', // 痕跡をすべて見つけて除霊
   rankS: 'RANK_S', // S 評価をとる
   noHint: 'NO_HINT', // お札を使わずにクリア
   noMiss: 'NO_MISS', // 見誤りなしでクリア
@@ -49,8 +47,11 @@ const ui = {
   flashlight: $('#flashlight'),
   fx: $('#fx'),
   toast: $('#toast'),
-  list: $('#item-list'),
-  remain: $('#remain'),
+  traceList: $('#trace-list'),
+  traceCount: $('#trace-count'),
+  exorciseBtn: $('#btn-exorcise'),
+  letter: $('#letter'),
+  letterBtn: $('#btn-letter'),
   time: $('#play-time'),
   grudge: $('.grudge'),
   grudgeFill: $('#grudge-fill'),
@@ -60,7 +61,7 @@ const ui = {
   menu: $('#menu'),
 };
 
-let meta = { title: 'かくれさま', scenes: [] };
+let meta = { title: 'かくれさま', requests: [] };
 let game = null;
 
 const vp = new Viewport(ui.stage, ui.content, {
@@ -72,22 +73,10 @@ const vp = new Viewport(ui.stage, ui.content, {
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 function fmtTime(sec) {
   const s = Math.floor(sec);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
-
-const KANJI = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-const kanjiNum = (n) => (n <= 10 ? KANJI[n] : String(n));
 
 function show(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
@@ -167,7 +156,7 @@ function jumpscare() {
   });
 }
 
-// ---------------------------------------------------------------- ストーリー
+// ---------------------------------------------------------------- 文章（導入・鑑定結果）
 
 function typewrite(el, text, done) {
   let n = 0;
@@ -215,23 +204,44 @@ function playStory(lines, title = '') {
   });
 }
 
-// ---------------------------------------------------------------- ゲーム本体
+// ---------------------------------------------------------------- 依頼文（写真の上に重ねる）
 
-// 候補アイテムから今回探すものを選ぶ。story / always のものは必ず入る。
-function pickTargets(scene) {
-  const items = scene.items || [];
-  const must = items.filter((it) => it.story || it.always);
-  const rest = shuffle(items.filter((it) => !(it.story || it.always)));
-  const n = Math.min(items.length, scene.pick || items.length);
-  const chosen = [...must, ...rest.slice(0, Math.max(0, n - must.length))];
-  return [...shuffle(chosen.filter((it) => !it.story)), ...chosen.filter((it) => it.story)];
+function renderLetter(req) {
+  $('#letter-no').textContent = `依頼 No.${req.id}`;
+  $('#letter-title').textContent = `「${req.title || ''}」`;
+  $('#letter-client').textContent = req.client ? `依頼者：${req.client}` : '';
+  const body = $('#letter-body');
+  body.innerHTML = '';
+  // 空行で段落を分ける
+  let para = null;
+  for (const line of req.letter || []) {
+    if (!line.trim()) {
+      para = null;
+      continue;
+    }
+    if (!para) {
+      para = document.createElement('p');
+      body.appendChild(para);
+    } else para.appendChild(document.createElement('br'));
+    para.appendChild(document.createTextNode(line));
+  }
 }
 
+function setLetter(open) {
+  ui.letter.classList.toggle('open', open);
+  ui.letterBtn.setAttribute('aria-pressed', String(open));
+  if (open) ui.letter.scrollTop = 0;
+}
+
+// ---------------------------------------------------------------- 調査（ゲーム本体）
+
 class Game {
-  constructor(scene, onFinish) {
-    this.scene = scene;
+  constructor(req, onFinish) {
+    this.req = req;
     this.onFinish = onFinish;
-    this.targets = pickTargets(scene);
+    const items = req.items || [];
+    this.core = items.find((it) => it.core) || null;
+    this.traces = items.filter((it) => !it.core);
     this.found = new Set();
     this.misses = 0;
     this.hints = 0;
@@ -243,8 +253,10 @@ class Game {
     this.elapsed = 0;
     this.last = performance.now();
     this.paused = false;
+    this.started = false; // 最初に依頼文を閉じた時から時間を数える
     this.locked = true;
     this.done = false;
+    this.exorcising = false; // 「祓」で核を指定する状態
     this.nextEvent = rand(18, 35);
     this.hintEl = null;
   }
@@ -252,35 +264,42 @@ class Game {
   async start(src) {
     ui.overlay.innerHTML = '';
     ui.fx.innerHTML = '';
+    ui.stageWrap.classList.remove('purified', 'exorcise');
     await loadImage(ui.img, src);
     if (this.done) return;
-    const w = this.scene.width || ui.img.naturalWidth;
-    const h = this.scene.height || ui.img.naturalHeight;
+    const w = this.req.width || ui.img.naturalWidth;
+    const h = this.req.height || ui.img.naturalHeight;
     this.strokeW = Math.max(w, h) / 320;
     ui.overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
     vp.setSize(w, h);
     vp.locked = false;
-    this.renderList();
-    ui.stageWrap.classList.toggle('dark', !!this.scene.flashlight);
-    if (this.scene.flashlight) {
+    this.renderTraces();
+    ui.stageWrap.classList.toggle('dark', !!this.req.flashlight);
+    if (this.req.flashlight) {
       const r = vp.rect();
       ui.flashlight.style.setProperty('--lr', `${Math.round(Math.min(r.width, r.height) * 0.28)}px`);
       this.moveLight({ x: r.width / 2, y: r.height / 2 });
     }
+    renderLetter(this.req);
+    setLetter(true);
     this.last = performance.now();
     this.locked = false;
     this.updateHud();
     this.timer = setInterval(() => this.tick(), 200);
   }
 
-  renderList() {
-    ui.list.innerHTML = '';
-    for (const t of this.targets) {
+  // 依頼文を閉じたら調査開始
+  letterClosed() {
+    this.started = true;
+  }
+
+  renderTraces() {
+    ui.traceList.innerHTML = '';
+    for (const t of this.traces) {
+      if (!this.found.has(t.id)) continue;
       const li = document.createElement('li');
       li.textContent = t.name;
-      li.dataset.id = t.id;
-      if (t.story) li.classList.add('story');
-      ui.list.appendChild(li);
+      ui.traceList.appendChild(li);
     }
   }
 
@@ -288,7 +307,7 @@ class Game {
     const now = performance.now();
     const dt = (now - this.last) / 1000;
     this.last = now;
-    if (this.paused || this.done) return;
+    if (this.paused || this.done || !this.started) return;
     this.elapsed += dt;
     if (this.grudge > 0 && (this.grudgeTimer += dt) >= GRUDGE_DECAY) {
       this.grudgeTimer = 0;
@@ -312,18 +331,35 @@ class Game {
     ui.hintCount.textContent = `×${this.ofuda}`;
     ui.hintBtn.classList.toggle('empty', this.ofuda === 0);
     ui.hintBtn.style.setProperty('--p', this.ofuda < HINT_MAX ? this.recharge.toFixed(3) : 0);
-    ui.remain.textContent = `残り ${this.targets.length - this.found.size}`;
+    ui.traceCount.textContent = `痕跡 ${this.found.size} / ${this.traces.length}`;
+    ui.exorciseBtn.setAttribute('aria-pressed', String(this.exorcising));
+    ui.stageWrap.classList.toggle('exorcise', this.exorcising);
   }
 
   tap(ip, sp) {
     sfx.unlock();
     if (this.locked || this.done || this.paused) return;
+    if (!this.started) this.started = true;
     this.moveLight(sp);
     const tol = TAP_TOLERANCE / vp.scale;
-    const hit = this.targets.find((t) => !this.found.has(t.id) && hitTest(t, ip.x, ip.y, tol));
+    const onCore = this.core && hitTest(this.core, ip.x, ip.y, tol);
+
+    if (this.exorcising) {
+      this.exorcising = false;
+      if (onCore) return this.exorcise();
+      return this.backlash(sp);
+    }
+
+    const hit = this.traces.find((t) => !this.found.has(t.id) && hitTest(t, ip.x, ip.y, tol));
     if (hit) return this.onFound(hit);
-    // 見つけ済みのものを触っただけなら見誤りにしない
-    if (this.targets.some((t) => this.found.has(t.id) && hitTest(t, ip.x, ip.y, tol))) return;
+    if (onCore) {
+      // 核に触れただけでは祓えない。「祓」で指定して初めて除霊になる
+      flicker();
+      toast(this.core.text || '……ここから、強い霊気を感じる。', 2600, true);
+      return;
+    }
+    // 見つけ済みの痕跡を触っただけなら見誤りにしない
+    if (this.traces.some((t) => this.found.has(t.id) && hitTest(t, ip.x, ip.y, tol))) return;
     this.onMiss(sp);
   }
 
@@ -332,14 +368,13 @@ class Game {
     sfx.found();
     platform.vibrate('light');
     this.mark(t);
-    ui.list.querySelector(`[data-id="${CSS.escape(t.id)}"]`)?.classList.add('found');
+    this.renderTraces();
     if (this.hintEl?.dataset.id === t.id) this.clearHint();
-    if (t.text) toast(t.text, 5000, !!t.story);
+    if (t.text) toast(t.text, 5000, true);
     this.updateHud();
-    if (this.found.size === this.targets.length) this.finish();
   }
 
-  mark(t) {
+  mark(t, cls = 'mark') {
     const b = bbox(t);
     const pad = Math.max(b.w, b.h) * 0.12 + this.strokeW * 2;
     const rx = b.w / 2 + pad;
@@ -347,7 +382,7 @@ class Game {
     // 楕円周の近似（ラマヌジャン）で描画アニメ用の破線長を決める
     const len = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
     ui.overlay.appendChild(svgEl('ellipse', {
-      class: 'mark',
+      class: cls,
       cx: b.x + b.w / 2,
       cy: b.y + b.h / 2,
       rx,
@@ -370,6 +405,15 @@ class Game {
     if (this.grudge >= GRUDGE_MAX) this.scare();
   }
 
+  // 「祓」で核以外を指した：霊が反撃する
+  async backlash(sp) {
+    ripple(sp);
+    this.misses++;
+    this.updateHud();
+    toast('違う。……気づかれた。', 1800, true);
+    await this.scare();
+  }
+
   async scare() {
     this.grudge = 0;
     this.penalty += SCARE_PENALTY;
@@ -379,6 +423,55 @@ class Game {
     await jumpscare();
     if (!this.done) this.locked = false;
     this.updateHud();
+  }
+
+  toggleExorcise() {
+    sfx.unlock();
+    if (this.locked || this.done || this.paused) return;
+    if (!this.core) return toast('この写真には、祓うべき核が見当たらない。', 2000);
+    this.exorcising = !this.exorcising;
+    if (this.exorcising) {
+      setLetter(false);
+      this.started = true;
+      toast('霊障の核を指してください。外すと霊が反撃します。', 2600);
+    }
+    this.updateHud();
+  }
+
+  // 除霊：核に札を貼り、写真が静まる
+  exorcise() {
+    this.done = true;
+    this.locked = true;
+    this.exorcising = false;
+    this.updateHud();
+    vp.locked = true;
+    clearInterval(this.timer);
+    this.clearHint();
+    sfx.exorcise();
+    platform.vibrate('heavy');
+    const b = bbox(this.core);
+    const c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+    vp.centerOn(c.x, c.y);
+    const size = Math.max(b.w, b.h) * 0.9;
+    const seal = svgEl('g', { class: 'seal-mark', transform: `translate(${c.x} ${c.y})` });
+    seal.appendChild(svgEl('rect', { x: -size * 0.28, y: -size * 0.6, width: size * 0.56, height: size * 1.2, class: 'seal-paper' }));
+    const t = svgEl('text', { class: 'seal-text', 'font-size': size * 0.4, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
+    t.textContent = '祓';
+    seal.appendChild(t);
+    seal.appendChild(svgEl('circle', { class: 'seal-glow', r: size * 0.9 }));
+    ui.overlay.appendChild(seal);
+    ui.stageWrap.classList.add('purified');
+    setTimeout(() => toast(this.req.exorcised || '霊障は祓われた。', 3200, true), 900);
+
+    const time = this.elapsed + this.penalty;
+    const all = this.found.size === this.traces.length;
+    // 痕跡を全部見つけていなければ評価は B まで
+    const score = (time + this.hints * 10 + this.misses * 3) / (this.traces.length + 1);
+    let rank = score <= 12 ? 'S' : score <= 20 ? 'A' : 'B';
+    if (!all) rank = this.found.size * 2 >= this.traces.length ? 'B' : 'C';
+    setTimeout(() => this.onFinish({
+      time, misses: this.misses, hints: this.hints, rank, found: this.found.size, total: this.traces.length, all,
+    }), 4200);
   }
 
   hint() {
@@ -391,9 +484,12 @@ class Game {
       toast('お札が足りない……', 1500);
       return;
     }
-    const rest = this.targets.filter((t) => !this.found.has(t.id));
-    if (!rest.length) return;
-    const t = rest[Math.floor(Math.random() * rest.length)];
+    // 残っている痕跡を照らす。痕跡を見つけ尽くしたら核を照らす
+    const rest = this.traces.filter((t) => !this.found.has(t.id));
+    const t = rest.length ? rest[Math.floor(Math.random() * rest.length)] : this.core;
+    if (!t) return;
+    setLetter(false);
+    this.started = true;
     this.ofuda--;
     this.hints++;
     sfx.hint();
@@ -410,7 +506,7 @@ class Game {
     this.hintEl.dataset.id = t.id;
     ui.overlay.appendChild(this.hintEl);
     vp.centerOn(c.x, c.y);
-    if (this.scene.flashlight) this.moveLight(vp.toStage(c));
+    if (this.req.flashlight) this.moveLight(vp.toStage(c));
     this.hintTimer = setTimeout(() => this.clearHint(), 6000);
     this.updateHud();
   }
@@ -422,24 +518,13 @@ class Game {
   }
 
   moveLight(sp) {
-    if (!this.scene.flashlight) return;
+    if (!this.req.flashlight) return;
     ui.flashlight.style.setProperty('--lx', `${sp.x}px`);
     ui.flashlight.style.setProperty('--ly', `${sp.y}px`);
   }
 
   setPaused(p) {
     this.paused = p;
-  }
-
-  finish() {
-    this.done = true;
-    this.locked = true;
-    clearInterval(this.timer);
-    this.clearHint();
-    const time = this.elapsed + this.penalty;
-    const per = (time + this.hints * 15 + this.misses * 2) / this.targets.length;
-    const rank = per <= 9 ? 'S' : per <= 16 ? 'A' : per <= 28 ? 'B' : 'C';
-    setTimeout(() => this.onFinish({ time, misses: this.misses, hints: this.hints, rank }), 1400);
   }
 
   destroy() {
@@ -451,130 +536,125 @@ class Game {
 
 // ---------------------------------------------------------------- 進行
 
-const isPlayable = (s) => !!(s && s.image && s.items?.length);
-const isUnlocked = (i) => i === 0 || params.has('unlock') || !!save.cleared[meta.scenes[i - 1]?.id];
+const isPlayable = (r) => !!(r && r.image && r.items?.some((it) => it.core));
+const isUnlocked = (i) => i === 0 || params.has('unlock') || !!save.cleared[meta.requests[i - 1]?.id];
 const RANKS = 'CBAS';
 
-function nextPlayable(i) {
-  const n = i + 1;
-  return n < meta.scenes.length && isPlayable(meta.scenes[n]) ? n : -1;
-}
+// request.json の "bgm": { "src": "bgm.m4a", "loopStart": 秒, "loopEnd": 秒 }（パスは依頼のフォルダから）
+const bgmOf = (req) => (req.bgm?.src ? { ...req.bgm, src: (req.base || '') + req.bgm.src } : null);
 
-// scene.json の "bgm": { "src": "bgm.m4a", "loopStart": 秒, "loopEnd": 秒 }（パスは各夜のフォルダから）
-const bgmOf = (scene) => (scene.bgm?.src ? { ...scene.bgm, src: (scene.base || '') + scene.bgm.src } : null);
-
-async function runScene(i) {
-  const scene = meta.scenes[i];
+function openRequest(i) {
+  const req = meta.requests[i];
   sfx.unlock();
-  sfx.playBgm(bgmOf(scene), { synth: true });
-  await playStory(scene.intro, scene.title);
-  startPlay(scene, scene.base + scene.image, i);
+  if (!save.read[req.id]) {
+    save.read[req.id] = true;
+    store.save(save);
+  }
+  startPlay(req, req.base + req.image, i);
 }
 
-function startPlay(scene, src, index) {
+function startPlay(req, src, index) {
   game?.destroy();
   show('screen-play');
-  $('#play-title').textContent = scene.title || '';
-  sfx.playBgm(bgmOf(scene), { synth: true });
-  const g = new Game(scene, (res) => onClear(scene, index, res, src));
+  $('#play-title').textContent = `No.${req.id}「${req.title || ''}」`;
+  sfx.playBgm(bgmOf(req), { synth: true });
+  const g = new Game(req, (res) => onClear(req, index, res, src));
   game = g;
   g.start(src).catch((err) => {
     console.error(err);
     alert(err.message);
-    if (!PREVIEW) openSelect();
+    if (!PREVIEW) openInbox();
   });
 }
 
-function onClear(scene, index, res, src) {
+function onClear(req, index, res, src) {
   sfx.stopBgm();
   sfx.clear();
   if (index >= 0) {
-    const prev = save.cleared[scene.id];
+    const prev = save.cleared[req.id];
     const better = !prev
       || RANKS.indexOf(res.rank) > RANKS.indexOf(prev.rank)
       || (res.rank === prev.rank && res.time < prev.time);
-    if (better) save.cleared[scene.id] = { rank: res.rank, time: Math.round(res.time) };
+    if (better) save.cleared[req.id] = { rank: res.rank, time: Math.round(res.time), all: res.all };
     store.save(save);
-    achieve(ACHIEVEMENTS.clear(scene.id));
+    achieve(ACHIEVEMENTS.clear(req.id));
+    if (res.all) achieve(ACHIEVEMENTS.allTraces);
     if (res.rank === 'S') achieve(ACHIEVEMENTS.rankS);
     if (res.hints === 0) achieve(ACHIEVEMENTS.noHint);
     if (res.misses === 0) achieve(ACHIEVEMENTS.noMiss);
   }
-  $('#result-title').textContent = scene.title || '';
+  $('#result-title').textContent = `依頼 No.${req.id}「${req.title || ''}」 除霊完了`;
   $('#result-rank').textContent = res.rank;
   $('#result-time').textContent = fmtTime(res.time);
+  $('#result-traces').textContent = `${res.found} / ${res.total}`;
   $('#result-miss').textContent = `${res.misses} 回`;
   $('#result-hint').textContent = `${res.hints} 枚`;
   show('screen-result');
 
-  const next = $('#btn-next');
-  next.hidden = index < 0;
-  next.onclick = async () => {
-    await playStory(scene.outro, scene.title);
-    const ni = nextPlayable(index);
-    if (ni >= 0) return runScene(ni);
-    await playStory(index === meta.scenes.length - 1 ? ENDING : TO_BE_CONTINUED);
-    show('screen-title');
-    refreshTitle();
+  // 鑑定結果（後日談）。痕跡を全部見つけていれば真相が加わる
+  $('#btn-next').onclick = async () => {
+    const lines = [...(req.epilogue || []), ...(res.all ? req.truth || [] : [])];
+    await playStory(lines, `依頼 No.${req.id} 鑑定結果`);
+    if (index < 0) return show('screen-result');
+    const ni = index + 1;
+    if (ni < meta.requests.length && isPlayable(meta.requests[ni]) && !save.read[meta.requests[ni].id]) {
+      toast('新しい依頼が届いています', 2600);
+    }
+    openInbox();
   };
-  $('#btn-retry').onclick = () => startPlay(scene, src, index);
-  $('#btn-result-select').hidden = index < 0;
-  $('#btn-result-select').onclick = openSelect;
+  $('#btn-retry').onclick = () => startPlay(req, src, index);
+  $('#btn-result-inbox').hidden = index < 0;
+  $('#btn-result-inbox').onclick = openInbox;
 }
 
-function openSelect() {
+function openInbox() {
   game?.destroy();
   game = null;
   sfx.playBgm(meta.audio?.bgm?.title);
-  const ul = $('#night-list');
+  const ul = $('#request-list');
   ul.innerHTML = '';
-  meta.scenes.forEach((s, i) => {
+  meta.requests.forEach((r, i) => {
+    const playable = isPlayable(r);
+    const unlocked = isUnlocked(i);
+    if (!unlocked) return; // まだ届いていない依頼は出さない
     const li = document.createElement('li');
     const btn = document.createElement('button');
-    btn.className = 'night';
-    const playable = isPlayable(s);
-    const unlocked = isUnlocked(i);
-    const rec = save.cleared[s.id];
-    btn.disabled = !playable || !unlocked;
-    if (playable && unlocked) {
-      // 背景画をそのままサムネイルに使う
-      btn.classList.add('has-thumb');
-      btn.style.backgroundImage = `linear-gradient(90deg, rgba(14, 11, 9, 0.96) 35%, rgba(14, 11, 9, 0.55)), url("${s.base}${s.image}")`;
-    }
-    const n = document.createElement('span');
-    n.className = 'n';
-    n.textContent = kanjiNum(i + 1);
+    btn.className = 'request';
+    btn.disabled = !playable;
+    const rec = save.cleared[r.id];
+    const no = document.createElement('span');
+    no.className = 'request-no';
+    no.textContent = `No.${r.id}`;
     const t = document.createElement('span');
-    t.className = 't';
-    t.textContent = unlocked ? s.title : '？？？';
-    const r = document.createElement('span');
-    r.className = 'r';
-    if (!playable) r.textContent = '準備中';
-    else if (!unlocked) r.textContent = '封印';
+    t.className = 'request-title';
+    t.textContent = `「${r.title || ''}」`;
+    const c = document.createElement('span');
+    c.className = 'request-client';
+    c.textContent = r.client || '';
+    const st = document.createElement('span');
+    st.className = 'request-status';
+    if (!playable) st.textContent = '準備中';
     else if (rec) {
-      r.textContent = `評価 ${rec.rank}・${fmtTime(rec.time)}`;
-      r.classList.add('rank');
-    } else r.textContent = '未踏';
-    btn.append(n, t, r);
-    btn.onclick = () => runScene(i);
+      st.textContent = `除霊済・評価 ${rec.rank}`;
+      st.classList.add('done');
+    } else if (save.read[r.id]) st.textContent = '調査中';
+    else {
+      st.textContent = '未読';
+      st.classList.add('new');
+    }
+    btn.append(no, t, c, st);
+    btn.onclick = () => openRequest(i);
     li.appendChild(btn);
     ul.appendChild(li);
   });
-  show('screen-select');
+  show('screen-inbox');
 }
 
-function refreshTitle() {
-  const started = meta.scenes.some((s) => save.cleared[s.id]);
-  $('#btn-start').textContent = started ? 'つづきから' : 'はじめる';
-}
-
-function startFromTitle() {
+async function startFromTitle() {
   sfx.unlock();
-  const idx = meta.scenes.findIndex((s, i) => isPlayable(s) && isUnlocked(i) && !save.cleared[s.id]);
-  const fallback = meta.scenes.findIndex(isPlayable);
-  const i = idx >= 0 ? idx : fallback;
-  if (i < 0) return alert('遊べるシーンがありません。scenes/ を確認してください。');
-  runScene(i);
+  const first = !Object.keys(save.cleared).length && !Object.keys(save.read).length;
+  if (first && meta.prologue?.length) await playStory(meta.prologue, meta.title);
+  openInbox();
 }
 
 // ---------------------------------------------------------------- メニュー
@@ -602,11 +682,13 @@ function wire() {
     sfx.unlock();
     sfx.playBgm(meta.audio?.bgm?.title);
   });
-  $('#btn-select').onclick = () => { sfx.unlock(); openSelect(); };
   $('#btn-settings').onclick = () => openMenu(false);
-  $('#btn-select-back').onclick = () => { show('screen-title'); refreshTitle(); };
+  $('#btn-inbox-back').onclick = () => show('screen-title');
   $('#btn-pause').onclick = () => openMenu(true);
   $('#btn-hint').onclick = () => game?.hint();
+  $('#btn-exorcise').onclick = () => game?.toggleExorcise();
+  $('#btn-letter').onclick = () => toggleLetter();
+  $('#btn-letter-close').onclick = () => toggleLetter(false);
   $('#btn-zoom-in').onclick = () => vp.zoomBy(1.4);
   $('#btn-zoom-out').onclick = () => vp.zoomBy(1 / 1.4);
 
@@ -615,18 +697,18 @@ function wire() {
   $('#btn-restart').onclick = () => {
     const g = game;
     closeMenu();
-    if (g) startPlay(g.scene, ui.img.getAttribute('src'), PREVIEW ? -1 : meta.scenes.indexOf(g.scene));
+    if (g) startPlay(g.req, ui.img.getAttribute('src'), PREVIEW ? -1 : meta.requests.indexOf(g.req));
   };
   $('#btn-quit').onclick = () => {
     closeMenu();
     if (PREVIEW) return;
-    openSelect();
+    openInbox();
   };
   $('#btn-reset').onclick = () => {
-    if (!confirm('クリア記録をすべて消します。よろしいですか？')) return;
+    if (!confirm('除霊の記録をすべて消します。よろしいですか？')) return;
     save.cleared = {};
+    save.read = {};
     store.save(save);
-    refreshTitle();
   };
   $('#opt-sound').onchange = (e) => {
     save.settings.sound = e.target.checked;
@@ -661,6 +743,12 @@ function wire() {
   });
 }
 
+function toggleLetter(open = !ui.letter.classList.contains('open')) {
+  if (!game || game.done) return;
+  setLetter(open);
+  if (!open) game.letterClosed();
+}
+
 function setFullscreen(on) {
   save.settings.fullscreen = on;
   store.save(save);
@@ -682,6 +770,8 @@ function onKey(e) {
   if (!ui.menu.hidden || activeScreen() !== 'screen-play') return;
   const k = e.key.toLowerCase();
   if (k === 'h') game?.hint();
+  else if (k === 'l') toggleLetter();
+  else if (k === 'e') game?.toggleExorcise();
   else if (k === '+' || k === '=' || k === ';') vp.zoomBy(1.4);
   else if (k === '-') vp.zoomBy(1 / 1.4);
 }
@@ -690,18 +780,19 @@ function onKey(e) {
 function onBack() {
   if (!ui.menu.hidden) return closeMenu();
   const screen = activeScreen();
-  if (screen === 'screen-play') return openMenu(true);
-  if (screen === 'screen-select') {
-    show('screen-title');
-    return refreshTitle();
+  if (screen === 'screen-play') {
+    if (game?.exorcising) return game.toggleExorcise();
+    if (ui.letter.classList.contains('open') && game && !game.done) return toggleLetter(false);
+    return openMenu(true);
   }
-  if (screen === 'screen-result') return openSelect();
+  if (screen === 'screen-inbox') return show('screen-title');
+  if (screen === 'screen-result') return openInbox();
   if (screen === 'screen-title' && platform.kind === 'android') platform.quit();
 }
 
 // ---------------------------------------------------------------- 起動
 
-// 驚かし画像（scenes/index.json の "scare"）があれば SVG の顔の代わりに使う
+// 驚かし画像（requests/index.json の "scare"）があれば SVG の顔の代わりに使う
 function loadScareImage(src) {
   const img = new Image();
   img.className = 'scare-img';
@@ -710,14 +801,14 @@ function loadScareImage(src) {
   img.src = src;
 }
 
-// エディタの「テストプレイ」から開かれた場合：シーンと画像を postMessage で受け取る
+// エディタの「テストプレイ」から開かれた場合：依頼データと画像を postMessage で受け取る
 function bootPreview() {
   $('#screen-title').classList.remove('active');
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || e.data?.type !== 'kakure-preview') return;
-    const { scene, image } = e.data;
+    const { request, image } = e.data;
     const src = URL.createObjectURL(image);
-    startPlay(scene, src, -1);
+    startPlay(request, src, -1);
   });
   window.opener?.postMessage({ type: 'kakure-preview-ready' }, location.origin);
 }
@@ -727,17 +818,18 @@ async function boot() {
   if (PREVIEW) return bootPreview();
   if (platform.isDesktop) platform.setFullscreen(save.settings.fullscreen);
   try {
-    const idx = await loadJSON('scenes/index.json');
-    const scenes = await Promise.all(idx.scenes.map(async (id) => {
+    const idx = await loadJSON('requests/index.json');
+    const requests = await Promise.all(idx.requests.map(async (id) => {
       try {
-        const s = await loadJSON(`scenes/${id}/scene.json`);
-        return { ...s, id: s.id || id, base: `scenes/${id}/` };
+        const r = await loadJSON(`requests/${id}/request.json`);
+        return { ...r, id: r.id || id, base: `requests/${id}/` };
       } catch (err) {
         console.warn(err);
         return null;
       }
     }));
-    meta = { ...idx, scenes: scenes.filter(Boolean) };
+    meta = { ...idx, requests: requests.filter(Boolean) };
+    if (idx.subtitle) $('#subtitle').textContent = idx.subtitle;
     if (idx.scare) loadScareImage(idx.scare);
     if (idx.titleImage) $('#screen-title').style.setProperty('--title-image', `url("${idx.titleImage}")`);
     sfx.configure(idx.audio?.se);
@@ -745,10 +837,9 @@ async function boot() {
     console.error(err);
     const el = $('#boot-error');
     el.hidden = false;
-    el.textContent = 'シーンデータを読み込めませんでした。index.html を直接開いている場合は、'
-      + 'ローカルサーバー経由で開いてください（例: python3 -m http.server）。';
+    el.textContent = '依頼データを読み込めませんでした。index.html を直接開いている場合は、'
+      + 'ローカルサーバー経由で開いてください（例: npm run serve）。';
   }
-  refreshTitle();
 }
 
 boot();

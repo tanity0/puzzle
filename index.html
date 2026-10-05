@@ -15,11 +15,10 @@
       <div class="fog"></div>
       <div class="title-block">
         <h1 class="logo">かくれさま</h1>
-        <p class="subtitle">朧屋敷の神隠し</p>
+        <p id="subtitle" class="subtitle">写真除霊の依頼簿</p>
       </div>
       <nav class="title-menu">
-        <button id="btn-start" class="btn primary">はじめる</button>
-        <button id="btn-select" class="btn">夜を選ぶ</button>
+        <button id="btn-start" class="btn primary">依頼を確認する</button>
         <button id="btn-settings" class="btn ghost">設定</button>
         <button id="btn-quit-app" class="btn ghost">終了</button>
       </nav>
@@ -27,13 +26,13 @@
       <p class="caution">※ 驚かす演出と音があります。設定で弱められます。</p>
     </section>
 
-    <!-- 夜（ステージ）選択 -->
-    <section id="screen-select" class="screen">
+    <!-- 依頼箱 -->
+    <section id="screen-inbox" class="screen">
       <header class="bar">
-        <button id="btn-select-back" class="icon-btn" aria-label="戻る">‹</button>
-        <h2>夜を選ぶ</h2>
+        <button id="btn-inbox-back" class="icon-btn" aria-label="戻る">‹</button>
+        <h2>依頼箱</h2>
       </header>
-      <ul id="night-list" class="night-list"></ul>
+      <ul id="request-list" class="request-list"></ul>
     </section>
 
     <!-- ストーリー -->
@@ -49,6 +48,7 @@
       <header class="hud">
         <button id="btn-pause" class="icon-btn" aria-label="メニュー">≡</button>
         <p id="play-title" class="hud-title"></p>
+        <button id="btn-letter" class="hud-btn" aria-pressed="true">依頼文</button>
         <div class="grudge" aria-label="怨念">
           <span class="grudge-label">怨</span>
           <div class="grudge-bar"><div id="grudge-fill"></div></div>
@@ -70,14 +70,29 @@
           <button id="btn-zoom-out" class="icon-btn" aria-label="縮小">－</button>
         </div>
         <div id="toast" class="toast" role="status"></div>
+        <!-- 依頼文（写真の上に重ねる）。最初は表示、閉じて調査、いつでも再表示できる -->
+        <aside id="letter" class="letter" aria-label="依頼文">
+          <div class="letter-inner">
+            <p id="letter-no" class="letter-no"></p>
+            <h3 id="letter-title" class="letter-title"></h3>
+            <p id="letter-client" class="letter-client"></p>
+            <div id="letter-body" class="letter-body"></div>
+            <button id="btn-letter-close" class="btn small letter-close">写真を調べる</button>
+          </div>
+        </aside>
       </div>
       <footer class="tray">
         <button id="btn-hint" class="hint-btn" aria-label="お札でヒント">
           <span class="ofuda">札</span>
           <span id="hint-count" class="hint-count">3</span>
         </button>
-        <ul id="item-list" class="item-list"></ul>
-        <p id="remain" class="remain"></p>
+        <button id="btn-exorcise" class="exorcise-btn" aria-pressed="false" aria-label="霊障の核を指定して祓う">
+          <span class="seal">祓</span>
+        </button>
+        <div class="traces">
+          <p id="trace-count" class="trace-count"></p>
+          <ul id="trace-list" class="trace-list"></ul>
+        </div>
       </footer>
     </section>
 
@@ -89,13 +104,14 @@
         <p id="result-rank" class="result-rank"></p>
         <dl class="result-stats">
           <dt>時間</dt><dd id="result-time"></dd>
+          <dt>痕跡</dt><dd id="result-traces"></dd>
           <dt>見誤り</dt><dd id="result-miss"></dd>
           <dt>お札</dt><dd id="result-hint"></dd>
         </dl>
         <div class="result-actions">
-          <button id="btn-next" class="btn primary">先へ進む</button>
+          <button id="btn-next" class="btn primary">鑑定結果を送る</button>
           <button id="btn-retry" class="btn">もう一度</button>
-          <button id="btn-result-select" class="btn ghost">夜を選ぶ</button>
+          <button id="btn-result-inbox" class="btn ghost">依頼箱へ</button>
         </div>
       </div>
     </section>
@@ -108,7 +124,7 @@
       <div class="menu-game">
         <button id="btn-resume" class="btn primary">つづける</button>
         <button id="btn-restart" class="btn">最初からやり直す</button>
-        <button id="btn-quit" class="btn">夜選択へ戻る</button>
+        <button id="btn-quit" class="btn">依頼箱へ戻る</button>
       </div>
       <label class="toggle"><input type="checkbox" id="opt-sound"> 音を鳴らす</label>
       <label class="toggle"><input type="checkbox" id="opt-scares"> 驚かし演出（顔が出る）</label>

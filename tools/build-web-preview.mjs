@@ -27,7 +27,7 @@ ${body.trim()}
 
 const files = ['css/style.css', 'js/main.js', 'js/viewport.js', 'js/hit.js', 'js/audio.js', 'js/storage.js', 'js/platform.js'];
 const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
-files.push(...walk(join(root, 'scenes')).map((f) => relative(root, f)));
+files.push(...walk(join(root, 'requests')).map((f) => relative(root, f)));
 for (const f of files) {
   mkdirSync(dirname(join(out, f)), { recursive: true });
   cpSync(join(root, f), join(out, f));

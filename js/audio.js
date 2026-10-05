@@ -263,3 +263,20 @@ export function clear() {
 export function page() {
   if (ctx) playFile('page', 0.6);
 }
+
+// 除霊の瞬間：低い鐘と、高く抜けていく音
+export function exorcise() {
+  if (!ctx || playFile('exorcise')) return;
+  const t = ctx.currentTime;
+  bell(0.22, 196);
+  const n = noise();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 2;
+  bp.frequency.setValueAtTime(300, t);
+  bp.frequency.exponentialRampToValueAtTime(4000, t + 1.6);
+  n.connect(bp).connect(envGain(t, 0.25, 0.4, 1.4));
+  n.start(t);
+  n.stop(t + 2);
+  setTimeout(() => bell(0.14, 784), 900);
+}

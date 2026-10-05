@@ -1,9 +1,9 @@
-// シーンエディタ：背景画像の上にアイテムの当たり判定を描き、scene.json を書き出す。
+// 依頼エディタ：写真の上に「核」と「痕跡」の当たり判定を描き、request.json を書き出す。
 
 import { bbox, hitTest, shapeElement, svgEl } from './hit.js';
 
 const $ = (s) => document.querySelector(s);
-const AUTOSAVE = 'kakuresama.editor.v1';
+const AUTOSAVE = 'kakuresama.editor.v2';
 
 const svg = $('#svg');
 const img = $('#img');
@@ -11,7 +11,7 @@ const canvas = $('#canvas');
 const wrap = $('#canvas-wrap');
 
 const st = {
-  scene: blankScene(),
+  req: blankRequest(),
   imgBlob: null,
   imgURL: null,
   imgName: '',
@@ -23,10 +23,10 @@ const st = {
   hover: null,
 };
 
-function blankScene() {
+function blankRequest() {
   return {
-    id: 'ch2', title: '', image: 'bg.webp', width: 0, height: 0,
-    pick: 10, flashlight: false, intro: [], outro: [], items: [],
+    id: '002', title: '', client: '', letter: [], image: 'photo.webp', width: 0, height: 0,
+    flashlight: false, exorcised: '', epilogue: [], truth: [], items: [],
   };
 }
 
@@ -36,7 +36,7 @@ let autosaveTimer = 0;
 function autosave() {
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => {
-    try { localStorage.setItem(AUTOSAVE, JSON.stringify(st.scene)); } catch { /* 容量不足等は無視 */ }
+    try { localStorage.setItem(AUTOSAVE, JSON.stringify(st.req)); } catch { /* 容量不足等は無視 */ }
   }, 300);
   validate();
 }
@@ -45,15 +45,15 @@ function restore() {
   try {
     const raw = localStorage.getItem(AUTOSAVE);
     if (!raw) return false;
-    setScene(JSON.parse(raw));
+    setRequest(JSON.parse(raw));
     return true;
   } catch {
     return false;
   }
 }
 
-function setScene(data) {
-  st.scene = { ...blankScene(), ...data, items: (data.items || []).map((it) => ({ ...it, coords: it.coords.slice() })) };
+function setRequest(data) {
+  st.req = { ...blankRequest(), ...data, items: (data.items || []).map((it) => ({ ...it, coords: it.coords.slice() })) };
   st.sel = null;
   st.draft = null;
   syncForm();
@@ -68,9 +68,9 @@ function setImage(blob, name) {
   st.imgName = name || '';
   st.imgURL = URL.createObjectURL(blob);
   img.onload = () => {
-    st.scene.width = img.naturalWidth;
-    st.scene.height = img.naturalHeight;
-    svg.setAttribute('viewBox', `0 0 ${st.scene.width} ${st.scene.height}`);
+    st.req.width = img.naturalWidth;
+    st.req.height = img.naturalHeight;
+    svg.setAttribute('viewBox', `0 0 ${st.req.width} ${st.req.height}`);
     canvas.classList.add('has-img');
     $('#empty').hidden = true;
     fitZoom();
@@ -80,21 +80,23 @@ function setImage(blob, name) {
   img.src = st.imgURL;
 }
 
-function buildScene() {
-  const s = st.scene;
+function buildRequest() {
+  const s = st.req;
   return {
     id: s.id,
     title: s.title,
+    client: s.client,
+    letter: s.letter,
     image: s.image,
     width: s.width,
     height: s.height,
-    pick: Number(s.pick) || s.items.length,
     flashlight: !!s.flashlight,
-    intro: s.intro,
-    outro: s.outro,
+    exorcised: s.exorcised,
+    epilogue: s.epilogue,
+    truth: s.truth,
     items: s.items.map((it) => {
       const o = { id: it.id, name: it.name, shape: it.shape, coords: it.coords.map((v) => Math.round(v)) };
-      if (it.story) o.story = true;
+      if (it.core) o.core = true;
       if (it.text) o.text = it.text;
       return o;
     }),
@@ -103,18 +105,18 @@ function buildScene() {
 
 // 座標配列は1行にまとめて読みやすくする
 function toJSON() {
-  return `${JSON.stringify(buildScene(), null, 2).replace(/\[\s+([-\d.,\s]+?)\s+\]/g, (_, inner) => `[${inner.replace(/\s+/g, ' ').replace(/ ,/g, ',')}]`)}\n`;
+  return `${JSON.stringify(buildRequest(), null, 2).replace(/\[\s+([-\d.,\s]+?)\s+\]/g, (_, inner) => `[${inner.replace(/\s+/g, ' ').replace(/ ,/g, ',')}]`)}\n`;
 }
 
-async function openServerScene(id) {
+async function openServerRequest(id) {
   try {
-    const r = await fetch(`scenes/${id}/scene.json`, { cache: 'no-cache' });
-    if (!r.ok) throw new Error(`scene.json (${r.status})`);
+    const r = await fetch(`requests/${id}/request.json`, { cache: 'no-cache' });
+    if (!r.ok) throw new Error(`request.json (${r.status})`);
     const data = await r.json();
-    setScene({ ...data, id: data.id || id });
-    const ir = await fetch(`scenes/${id}/${data.image}`, { cache: 'no-cache' });
+    setRequest({ ...data, id: data.id || id });
+    const ir = await fetch(`requests/${id}/${data.image}`, { cache: 'no-cache' });
     if (!ir.ok) {
-      setStatus(`scenes/${id}/${data.image} が見つかりません。画像をそのフォルダに置くか「画像を開く」で読み込んでください。`, true);
+      setStatus(`requests/${id}/${data.image} が見つかりません。画像をそのフォルダに置くか「画像を開く」で読み込んでください。`, true);
       return;
     }
     setImage(await ir.blob(), data.image);
@@ -125,17 +127,17 @@ async function openServerScene(id) {
 
 async function loadServerList() {
   try {
-    const r = await fetch('scenes/index.json', { cache: 'no-cache' });
+    const r = await fetch('requests/index.json', { cache: 'no-cache' });
     const idx = await r.json();
-    const sel = $('#server-scenes');
-    for (const id of idx.scenes) {
+    const sel = $('#server-requests');
+    for (const id of idx.requests) {
       const o = document.createElement('option');
       o.value = id;
       o.textContent = id;
       sel.appendChild(o);
     }
   } catch {
-    $('#server-scenes').hidden = true;
+    $('#server-requests').hidden = true;
   }
 }
 
@@ -144,7 +146,7 @@ function handleFiles(files) {
     if (f.type.startsWith('image/')) setImage(f, f.name);
     else if (f.name.endsWith('.json')) {
       f.text().then((t) => {
-        try { setScene(JSON.parse(t)); } catch (err) { setStatus(`JSONが読めません: ${err.message}`, true); }
+        try { setRequest(JSON.parse(t)); } catch (err) { setStatus(`JSONが読めません: ${err.message}`, true); }
       });
     }
   }
@@ -153,32 +155,36 @@ function handleFiles(files) {
 // ---------------------------------------------------------------- フォーム
 
 function syncForm() {
-  const s = st.scene;
+  const s = st.req;
   $('#f-id').value = s.id;
   $('#f-title').value = s.title;
+  $('#f-client').value = s.client || '';
   $('#f-image').value = s.image;
-  $('#f-pick').value = s.pick;
   $('#f-flashlight').checked = !!s.flashlight;
-  $('#f-intro').value = fromLines(s.intro || []);
-  $('#f-outro').value = fromLines(s.outro || []);
+  $('#f-letter').value = (s.letter || []).join('\n');
+  $('#f-exorcised').value = s.exorcised || '';
+  $('#f-epilogue').value = fromLines(s.epilogue || []);
+  $('#f-truth').value = fromLines(s.truth || []);
 }
 
-// 1行＝1画面。行内改行は「\n」と書く。
+// 鑑定結果・真相は 1行＝1画面。画面内の改行は「\n」と書く。依頼文は書いたままの行（空行＝段落の区切り）。
 const toLines = (v) => v.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => l.replace(/\\n/g, '\n'));
 const fromLines = (a) => a.map((l) => l.replace(/\n/g, '\\n')).join('\n');
 
 function bindForm() {
   const bind = (sel, key, conv = (v) => v) => $(sel).addEventListener('input', (e) => {
-    st.scene[key] = conv(e.target.type === 'checkbox' ? e.target.checked : e.target.value);
+    st.req[key] = conv(e.target.type === 'checkbox' ? e.target.checked : e.target.value);
     autosave();
   });
   bind('#f-id', 'id');
   bind('#f-title', 'title');
+  bind('#f-client', 'client');
   bind('#f-image', 'image');
-  bind('#f-pick', 'pick', (v) => Number(v) || 0);
   bind('#f-flashlight', 'flashlight');
-  bind('#f-intro', 'intro', toLines);
-  bind('#f-outro', 'outro', toLines);
+  bind('#f-letter', 'letter', (v) => v.replace(/\s+$/, '').split('\n').map((l) => l.trimEnd()));
+  bind('#f-exorcised', 'exorcised');
+  bind('#f-epilogue', 'epilogue', toLines);
+  bind('#f-truth', 'truth', toLines);
 }
 
 // ---------------------------------------------------------------- 描画
@@ -187,10 +193,10 @@ function render() {
   svg.innerHTML = '';
   svg.classList.toggle('select', st.tool === 'select');
   const fs = 14 / st.zoom;
-  for (const it of st.scene.items) {
+  for (const it of st.req.items) {
     const cls = ['shape'];
     if (it.id === st.sel) cls.push('sel');
-    if (it.story) cls.push('story');
+    if (it.core) cls.push('core');
     if (!it.name) cls.push('unnamed');
     svg.appendChild(shapeElement(it, { class: cls.join(' '), 'data-id': it.id }));
     const b = bbox(it);
@@ -220,11 +226,11 @@ function renderDraft() {
 function renderList() {
   const ol = $('#items');
   ol.innerHTML = '';
-  st.scene.items.forEach((it, i) => {
+  st.req.items.forEach((it, i) => {
     const li = document.createElement('li');
     li.dataset.id = it.id;
     li.classList.toggle('sel', it.id === st.sel);
-    li.classList.toggle('story', !!it.story);
+    li.classList.toggle('core', !!it.core);
 
     const no = document.createElement('span');
     no.className = 'no';
@@ -233,16 +239,22 @@ function renderList() {
     const name = document.createElement('input');
     name.type = 'text';
     name.value = it.name;
-    name.placeholder = 'アイテム名（例：日本人形）';
+    name.placeholder = '名前（例：障子の隙間の目）';
     name.addEventListener('input', () => { it.name = name.value.trim(); render(); autosave(); });
 
-    const story = document.createElement('label');
-    story.className = 'story-check';
+    // 核は 1 つだけ。チェックすると他の核は外れる
+    const core = document.createElement('label');
+    core.className = 'core-check';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = !!it.story;
-    cb.addEventListener('change', () => { it.story = cb.checked; render(); renderList(); autosave(); });
-    story.append(cb, '物語');
+    cb.checked = !!it.core;
+    cb.addEventListener('change', () => {
+      st.req.items.forEach((o) => { o.core = o === it ? cb.checked : false; });
+      render();
+      renderList();
+      autosave();
+    });
+    core.append(cb, '核');
 
     const del = document.createElement('button');
     del.className = 'del';
@@ -255,18 +267,18 @@ function renderList() {
     const ti = document.createElement('input');
     ti.type = 'text';
     ti.value = it.text || '';
-    ti.placeholder = '見つけた時に出す一文（任意）';
+    ti.placeholder = it.core ? '核に触れた時の一文（任意）' : '所見：見つけた時に出す一文';
     ti.addEventListener('input', () => { it.text = ti.value; autosave(); });
     text.appendChild(ti);
 
-    li.append(no, name, story, del, text);
+    li.append(no, name, core, del, text);
     li.addEventListener('click', (e) => {
       if (e.target.tagName === 'INPUT') { if (st.sel !== it.id) select(it.id, false); return; }
       select(it.id);
     });
     ol.appendChild(li);
   });
-  $('#item-count').textContent = `${st.scene.items.length} 個`;
+  $('#item-count').textContent = `${st.req.items.length} 個`;
 }
 
 function select(id, scroll = true) {
@@ -277,7 +289,7 @@ function select(id, scroll = true) {
 }
 
 function removeItem(id) {
-  st.scene.items = st.scene.items.filter((it) => it.id !== id);
+  st.req.items = st.req.items.filter((it) => it.id !== id);
   if (st.sel === id) st.sel = null;
   render();
   renderList();
@@ -291,37 +303,39 @@ function setStatus(text, warn = false) {
 }
 
 function validate() {
-  const s = st.scene;
+  const s = st.req;
   const w = [];
-  if (!st.imgURL) w.push('背景画像が未読み込みです。');
-  if (!s.items.length) w.push('アイテムがありません。');
+  if (!st.imgURL) w.push('写真が未読み込みです。');
+  const cores = s.items.filter((it) => it.core).length;
+  if (!cores) w.push('霊障の核がありません。どれか 1 つに「核」のチェックを入れてください。');
+  if (!s.items.some((it) => !it.core)) w.push('痕跡がありません。');
+  if (!s.letter?.some((l) => l.trim())) w.push('依頼文が空です。');
   const unnamed = s.items.filter((it) => !it.name).length;
-  if (unnamed) w.push(`名前のないアイテムが ${unnamed} 個あります。`);
+  if (unnamed) w.push(`名前のない当たり判定が ${unnamed} 個あります。`);
   const names = s.items.map((it) => it.name).filter(Boolean);
   const dup = names.filter((n, i) => names.indexOf(n) !== i);
   if (dup.length) w.push(`同じ名前があります：${[...new Set(dup)].join('、')}`);
-  if (s.pick > s.items.length && s.items.length) w.push(`出題数 ${s.pick} がアイテム数 ${s.items.length} より多いです。`);
   if (st.imgName && s.image && st.imgName !== s.image) {
-    w.push(`読み込んだ画像「${st.imgName}」と画像ファイル名「${s.image}」が違います。scenes/${s.id}/${s.image} として置いてください。`);
+    w.push(`読み込んだ写真「${st.imgName}」と画像ファイル名「${s.image}」が違います。requests/${s.id}/${s.image} として置いてください。`);
   }
   if (w.length) setStatus(w.join('\n'), true);
-  else setStatus(`OK：${s.items.length} 個のアイテム。scenes/${s.id}/ に ${s.image} と scene.json を置いてください。`);
+  else setStatus(`OK：核 1 つ・痕跡 ${s.items.length - 1} 個。requests/${s.id}/ に ${s.image} と request.json を置いてください。`);
 }
 
 // ---------------------------------------------------------------- ズーム
 
 function setZoom(z) {
   st.zoom = Math.min(8, Math.max(0.1, z));
-  canvas.style.width = `${st.scene.width * st.zoom}px`;
-  canvas.style.height = `${st.scene.height * st.zoom}px`;
+  canvas.style.width = `${st.req.width * st.zoom}px`;
+  canvas.style.height = `${st.req.height * st.zoom}px`;
   $('#zoom-label').textContent = `${Math.round(st.zoom * 100)}%`;
   render();
 }
 
 function fitZoom() {
-  if (!st.scene.width) return;
+  if (!st.req.width) return;
   const r = wrap.getBoundingClientRect();
-  setZoom(Math.min((r.width - 48) / st.scene.width, (r.height - 48) / st.scene.height));
+  setZoom(Math.min((r.width - 48) / st.req.width, (r.height - 48) / st.req.height));
 }
 
 // ---------------------------------------------------------------- 描画操作
@@ -329,14 +343,14 @@ function fitZoom() {
 function imgPt(e) {
   const r = svg.getBoundingClientRect();
   return {
-    x: ((e.clientX - r.left) / r.width) * st.scene.width,
-    y: ((e.clientY - r.top) / r.height) * st.scene.height,
+    x: ((e.clientX - r.left) / r.width) * st.req.width,
+    y: ((e.clientY - r.top) / r.height) * st.req.height,
   };
 }
 
 function uniqueId() {
-  let n = st.scene.items.length + 1;
-  while (st.scene.items.some((it) => it.id === `item${n}`)) n++;
+  let n = st.req.items.length + 1;
+  while (st.req.items.some((it) => it.id === `item${n}`)) n++;
   return `item${n}`;
 }
 
@@ -357,7 +371,7 @@ function commitDraft() {
     coords = pts;
   }
   const it = { id: uniqueId(), name: '', shape: d.shape, coords: coords.map((v) => Math.round(v)) };
-  st.scene.items.push(it);
+  st.req.items.push(it);
   st.sel = it.id;
   render();
   renderList();
@@ -369,7 +383,7 @@ svg.addEventListener('pointerdown', (e) => {
   if (!st.imgURL || e.button !== 0) return;
   const p = imgPt(e);
   if (st.tool === 'select') {
-    const hit = [...st.scene.items].reverse().find((it) => hitTest(it, p.x, p.y, 4 / st.zoom));
+    const hit = [...st.req.items].reverse().find((it) => hitTest(it, p.x, p.y, 4 / st.zoom));
     select(hit?.id ?? null);
     if (hit) {
       st.drag = { it: hit, start: p, orig: hit.coords.slice() };
@@ -468,8 +482,8 @@ wrap.addEventListener('wheel', (e) => {
 
 $('#file-img').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
 $('#file-json').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
-$('#server-scenes').addEventListener('change', (e) => {
-  if (e.target.value) openServerScene(e.target.value);
+$('#server-requests').addEventListener('change', (e) => {
+  if (e.target.value) openServerRequest(e.target.value);
   e.target.value = '';
 });
 
@@ -489,7 +503,7 @@ $('#btn-export').onclick = () => {
   const blob = new Blob([toJSON()], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'scene.json';
+  a.download = 'request.json';
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -497,25 +511,25 @@ $('#btn-export').onclick = () => {
 $('#btn-copy').onclick = async () => {
   try {
     await navigator.clipboard.writeText(toJSON());
-    setStatus('scene.json の内容をクリップボードにコピーしました。');
+    setStatus('request.json の内容をクリップボードにコピーしました。');
   } catch {
-    setStatus('コピーできませんでした。「scene.json を保存」を使ってください。', true);
+    setStatus('コピーできませんでした。「request.json を保存」を使ってください。', true);
   }
 };
 
 $('#btn-preview').onclick = () => {
   if (!st.imgBlob) return setStatus('先に背景画像を読み込んでください。', true);
-  if (!st.scene.items.length) return setStatus('アイテムを1つ以上描いてください。', true);
+  if (!st.req.items.some((it) => it.core)) return setStatus('「核」を 1 つ指定してください。', true);
   const win = window.open('index.html?preview', 'kakure-preview');
   const onMsg = (e) => {
     if (e.source !== win || e.data?.type !== 'kakure-preview-ready') return;
     window.removeEventListener('message', onMsg);
-    win.postMessage({ type: 'kakure-preview', scene: buildScene(), image: st.imgBlob }, location.origin);
+    win.postMessage({ type: 'kakure-preview', request: buildRequest(), image: st.imgBlob }, location.origin);
   };
   window.addEventListener('message', onMsg);
 };
 
-window.addEventListener('resize', () => { if (st.imgURL && !st.scene.items.length) fitZoom(); });
+window.addEventListener('resize', () => { if (st.imgURL && !st.req.items.length) fitZoom(); });
 
 // ---------------------------------------------------------------- 起動
 

@@ -5,7 +5,8 @@ import { readSave, writeSave } from './platform.js';
 const KEY = 'kakuresama.save.v1';
 
 const defaults = () => ({
-  cleared: {}, // { [sceneId]: { rank, time } }
+  cleared: {}, // { [依頼ID]: { rank, time, all } }
+  read: {}, // { [依頼ID]: true } 開いたことのある依頼
   achievements: {}, // { [id]: true }
   settings: { sound: true, scares: true, haptics: true, fullscreen: true },
 });
@@ -18,6 +19,7 @@ export async function load() {
     const d = JSON.parse(raw);
     return {
       cleared: d.cleared || {},
+      read: d.read || {},
       achievements: d.achievements || {},
       settings: { ...def.settings, ...(d.settings || {}) },
     };

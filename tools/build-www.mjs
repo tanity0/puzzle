@@ -17,7 +17,7 @@ const GAME_FILES = [
   'js/storage.js',
   'js/platform.js',
 ];
-const GAME_DIRS = ['scenes', 'assets'];
+const GAME_DIRS = ['requests', 'assets'];
 
 // 同梱フォント（SIL Open Font License 1.1）。使う太さだけ入れる。
 const FONTS = [

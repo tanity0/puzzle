@@ -45,7 +45,7 @@ npm run ios            # Xcode を開く（Mac のみ）
 npm test               # 自動プレイテスト
 ```
 
-ゲームのファイル（`js/`・`css/`・`scenes/` など）を変更したら、`npm run sync` で iOS / Android のプロジェクトへ反映します。
+ゲームのファイル（`js/`・`css/`・`requests/` など）を変更したら、`npm run sync` で iOS / Android のプロジェクトへ反映します。
 
 ---
 

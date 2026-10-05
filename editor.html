@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>かくれさま シーンエディタ</title>
+  <title>かくれさま 依頼エディタ</title>
   <link rel="icon" href="resources/icon-source.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/editor.css">
 </head>
 <body>
   <header class="toolbar">
-    <h1>シーンエディタ</h1>
-    <select id="server-scenes" title="scenes/ フォルダのシーンを開く">
-      <option value="">サーバー上のシーンを開く…</option>
+    <h1>依頼エディタ</h1>
+    <select id="server-requests" title="requests/ フォルダの依頼を開く">
+      <option value="">サーバー上の依頼を開く…</option>
     </select>
     <label class="btn">画像を開く<input type="file" id="file-img" accept="image/*" hidden></label>
     <label class="btn">scene.json を開く<input type="file" id="file-json" accept=".json,application/json" hidden></label>
@@ -30,7 +30,7 @@
     <span class="grow"></span>
     <button id="btn-preview" class="btn">テストプレイ</button>
     <button id="btn-copy" class="btn">JSONをコピー</button>
-    <button id="btn-export" class="btn primary">scene.json を保存</button>
+    <button id="btn-export" class="btn primary">request.json を保存</button>
   </header>
 
   <main class="layout">
@@ -40,27 +40,29 @@
         <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <div id="empty" class="empty">
-        <p>GPTで作った背景画像をここにドロップ</p>
-        <p class="small">または「画像を開く」／「サーバー上のシーンを開く」</p>
+        <p>GPTで作った依頼の写真をここにドロップ</p>
+        <p class="small">または「画像を開く」／「サーバー上の依頼を開く」</p>
       </div>
     </div>
 
     <aside class="side">
       <section>
-        <h2>シーン情報</h2>
+        <h2>依頼</h2>
         <div class="form">
-          <label>ID<input id="f-id" placeholder="ch2"></label>
-          <label>タイトル<input id="f-title" placeholder="第二夜　土間と台所"></label>
-          <label>画像ファイル名<input id="f-image" placeholder="bg.webp"></label>
-          <label>出題数<input id="f-pick" type="number" min="1" placeholder="10"></label>
+          <label>依頼番号<input id="f-id" placeholder="002"></label>
+          <label>題名<input id="f-title" placeholder="祖母の家"></label>
+          <label>依頼者<input id="f-client" placeholder="長野県・32歳女性"></label>
+          <label>写真のファイル名<input id="f-image" placeholder="photo.webp"></label>
           <label class="check"><input id="f-flashlight" type="checkbox"> 懐中電灯モード（暗闇）</label>
-          <label class="wide">導入文（1行＝1画面、画面内の改行は \n）<textarea id="f-intro" rows="4"></textarea></label>
-          <label class="wide">締めの文<textarea id="f-outro" rows="3"></textarea></label>
+          <label class="wide">依頼文（書いたまま表示。空行で段落を分ける）<textarea id="f-letter" rows="8"></textarea></label>
+          <label class="wide">除霊した瞬間の一文<input id="f-exorcised" placeholder="テレビの中の顔が、砂嵐に溶けるように消えていった。"></label>
+          <label class="wide">鑑定結果（1行＝1画面、画面内の改行は \n）<textarea id="f-epilogue" rows="4"></textarea></label>
+          <label class="wide">真相（痕跡を全部見つけた時だけ続けて表示）<textarea id="f-truth" rows="3"></textarea></label>
         </div>
       </section>
 
       <section class="items-section">
-        <h2>アイテム <span id="item-count" class="count"></span></h2>
+        <h2>核と痕跡 <span id="item-count" class="count"></span></h2>
         <ol id="items" class="items"></ol>
       </section>
 
@@ -74,7 +76,7 @@
             <li>選択ツール：図形をドラッグで移動、<kbd>Delete</kbd> で削除</li>
             <li><kbd>Esc</kbd>：描きかけを取り消し</li>
             <li><kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋ホイール：ズーム</li>
-            <li>赤枠のアイテムは「物語アイテム」。必ず出題され、見つけると一文が表示されます</li>
+            <li>「核」にチェックした 1 つが霊障の核（「祓」で指定すると除霊）。それ以外はすべて痕跡</li>
           </ul>
         </details>
       </section>

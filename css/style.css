@@ -163,7 +163,7 @@ button {
 }
 
 /* ---------- 夜選択 ---------- */
-#screen-select {
+#screen-inbox {
   flex-direction: column;
   background: radial-gradient(ellipse at 50% 0%, #1b1613, var(--bg) 70%);
 }
@@ -175,36 +175,40 @@ button {
 }
 .bar h2 { margin: 0; font-weight: 400; letter-spacing: 0.3em; }
 
-.night-list {
+/* 依頼箱：届いた手紙の一覧 */
+.request-list {
   list-style: none;
   margin: 0;
   padding: 8px 16px 24px;
   overflow-y: auto;
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   align-content: start;
   flex: 1;
 }
-.night {
+.request {
   width: 100%;
   display: grid;
-  grid-template-columns: 2.6em minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 4px;
   align-items: center;
-  gap: 12px;
-  min-height: 96px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   text-align: left;
   border: 1px solid var(--line);
-  background: rgba(24, 19, 16, 0.9);
+  border-left: 3px solid var(--red-dim);
+  background: rgba(24, 19, 16, 0.92);
 }
-.night:not(:disabled):hover { border-color: var(--red-dim); }
-.night:disabled { opacity: 0.45; cursor: default; }
-.night.has-thumb { background-size: cover; background-position: center; }
-.night .n { font-family: var(--brush); font-size: 1.6rem; color: var(--red); text-align: center; }
-.night .t { letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.night .r { font-size: 0.8rem; color: var(--dim); white-space: nowrap; }
-.night .r.rank { color: var(--gold); }
+.request:not(:disabled):hover { border-color: var(--red-dim); }
+.request:disabled { opacity: 0.45; cursor: default; }
+.request-no { grid-row: 1 / 3; font-size: 0.8rem; letter-spacing: 0.1em; color: var(--dim); }
+.request-title { letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.request-client { grid-column: 2; font-size: 0.8rem; color: var(--dim); }
+.request-status { grid-column: 3; grid-row: 1 / 3; font-size: 0.8rem; color: var(--dim); white-space: nowrap; }
+.request-status.new { color: #f0c4b8; }
+.request-status.new::before { content: "● "; color: var(--red); }
+.request-status.done { color: var(--gold); }
 
 /* ---------- ストーリー ---------- */
 #screen-story {
@@ -479,40 +483,127 @@ button {
 .hint-btn.deny { animation: deny 0.4s; }
 @keyframes deny { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
-.item-list {
-  flex: 1;
+/* 「祓」：核を指定して除霊するボタン */
+.exorcise-btn {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--red-dim);
+  border-radius: 50%;
+  background: radial-gradient(circle, #3a1214, #1a0809);
+  display: grid;
+  place-items: center;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.exorcise-btn .seal { font-family: var(--brush); font-size: 1.6rem; color: #e8b4ae; }
+.exorcise-btn[aria-pressed="true"] {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(179, 38, 43, 0.35), 0 0 18px rgba(179, 38, 43, 0.7);
+  animation: pulse-red 0.9s ease-in-out infinite;
+}
+
+.traces { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.trace-count { margin: 0; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--gold); }
+.trace-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 6px;
   margin: 0;
   padding: 0;
   list-style: none;
-  max-height: 22vh;
+  max-height: 16vh;
   overflow-y: auto;
 }
-.item-list li {
-  padding: 0.25em 0.7em;
-  border: 1px solid var(--line);
-  background: rgba(40, 32, 26, 0.6);
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
+.trace-list li {
+  padding: 0.2em 0.7em;
+  border: 1px solid var(--red-dim);
+  background: rgba(60, 20, 20, 0.35);
+  color: #ecc9c2;
+  font-size: 0.85rem;
   white-space: nowrap;
-  transition: opacity 0.4s, color 0.4s;
+  animation: fade-in 0.5s ease;
 }
-.item-list li.story { border-color: var(--red-dim); color: #e7a7a2; }
-.item-list li.found {
-  opacity: 0.35;
-  text-decoration: line-through;
-  text-decoration-color: var(--red);
+
+/* 依頼文：写真の左半分に黒のグラデーションを敷き、白文字で重ねる */
+.letter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  padding: clamp(16px, 3vh, 32px) 0 clamp(16px, 3vh, 32px) calc(var(--safe-l) + clamp(16px, 3vw, 40px));
+  overflow-y: auto;
+  color: #f3efe6;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.62) 55%, rgba(0, 0, 0, 0) 100%);
+  opacity: 0;
+  transform: translateX(-16px);
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
-.remain { margin: 0; font-size: 0.8rem; color: var(--dim); white-space: nowrap; }
+.letter.open { opacity: 1; transform: none; pointer-events: auto; }
+.letter-inner { max-width: 30em; padding-right: 20%; }
+.letter-no { margin: 0; font-size: 0.75rem; letter-spacing: 0.3em; color: #d9a9a3; }
+.letter-title { margin: 0.15em 0 0.1em; font-family: var(--brush); font-weight: 400; font-size: clamp(1.3rem, 3vw, 1.9rem); letter-spacing: 0.1em; }
+.letter-client { margin: 0 0 1.2em; font-size: 0.8rem; color: rgba(243, 239, 230, 0.7); }
+.letter-body p { margin: 0 0 0.9em; font-size: clamp(0.85rem, 1.5vw, 1.02rem); line-height: 1.9; letter-spacing: 0.04em; }
+.letter-close { margin-top: 0.4em; background: rgba(0, 0, 0, 0.4); }
+
+.hud-btn {
+  padding: 0.3em 0.9em;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(30, 24, 20, 0.85);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.hud-btn[aria-pressed="true"] { border-color: var(--dim); background: rgba(70, 58, 48, 0.9); }
+
+/* 祓モード中は写真の縁が赤くなる */
+.stage-wrap.exorcise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 60px rgba(179, 38, 43, 0.75);
+  animation: pulse-red 1.2s ease-in-out infinite;
+}
+.stage-wrap.exorcise .stage { cursor: cell; }
+
+/* 除霊：一瞬光って、写真の空気が軽くなる */
+.stage-wrap.purified .stage { animation: purify 3.2s ease-out forwards; }
+.stage-wrap.purified .vignette { transition: opacity 3s; opacity: 0.3; }
+@keyframes purify {
+  0% { filter: none; }
+  12% { filter: brightness(2.4) saturate(0.2); }
+  100% { filter: brightness(1.12) saturate(0.75); }
+}
+.overlay .seal-paper { fill: #ece3cc; stroke: #8a1e1e; stroke-width: 2; }
+.overlay .seal-text { fill: #9a1d1d; font-family: var(--brush); }
+.overlay .seal-glow { fill: none; stroke: var(--gold); stroke-width: 4; }
+.overlay .seal-mark > * {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: seal-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.overlay .seal-mark > .seal-glow { animation: seal-glow 2.4s ease-out both; }
+@keyframes seal-in { from { transform: scale(1.8); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes seal-glow { from { transform: scale(0.3); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
 
 /* タッチ端末はピンチで拡大できるのでズームボタンを出さない */
 @media (pointer: coarse) {
   .zoom-btns { display: none; }
 }
 
-/* 横向きの小さい画面ではアイテム欄を右に置く */
+/* 画面の低いスマホでは依頼文を詰めて表示 */
+@media (max-height: 540px) {
+  .letter-title { font-size: 1.15rem; }
+  .letter-client { margin-bottom: 0.8em; }
+  .letter-body p { font-size: 0.8rem; line-height: 1.75; }
+}
+
+/* 横向きの小さい画面では道具欄を右に置く */
 @media (orientation: landscape) and (max-height: 540px) {
   #screen-play {
     display: none;
@@ -533,8 +624,10 @@ button {
     min-height: 0;
   }
   .hint-btn { width: 100%; height: 44px; flex-direction: row; gap: 8px; }
-  .item-list { flex-direction: column; flex-wrap: nowrap; max-height: none; min-height: 0; }
-  .item-list li { font-size: 0.85rem; }
+  .exorcise-btn { width: 100%; height: 44px; border-radius: 22px; }
+  .trace-list { flex-direction: column; flex-wrap: nowrap; max-height: none; min-height: 0; }
+  .trace-list li { font-size: 0.8rem; white-space: normal; }
+  .letter { width: 62%; }
 }
 
 /* ---------- 結果 ---------- */

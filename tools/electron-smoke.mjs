@@ -24,11 +24,13 @@ if (!fontOk) errors.push('同梱フォントが読み込めない');
 await win.screenshot({ path: `${OUT}/electron-title.png` });
 await win.click('#btn-start');
 await win.click('#btn-story-skip');
+await win.waitForSelector('#screen-inbox.active');
+await win.click('.request');
 await win.waitForSelector('#screen-play.active');
 await win.waitForTimeout(800);
 await win.screenshot({ path: `${OUT}/electron-play.png` });
-const items = await win.$$eval('#item-list li', (l) => l.length);
-if (!items) errors.push('アイテム一覧が空');
+const count = await win.$eval('#trace-count', (el) => el.textContent);
+if (!/痕跡 0 \/ \d+/.test(count)) errors.push(`痕跡の表示がおかしい: ${count}`);
 await app.close();
 if (errors.length) {
   console.log(`NG\n${errors.join('\n')}`);
