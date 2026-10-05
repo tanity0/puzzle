@@ -17,7 +17,12 @@
   --safe-r: env(safe-area-inset-right, 0px);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  /* スクロールはできるが、スクロールバーは出さない（依頼文・依頼箱・痕跡の一覧など） */
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar { display: none; }
 
 html, body {
   margin: 0;
