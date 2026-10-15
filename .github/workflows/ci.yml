@@ -46,6 +46,8 @@ jobs:
       - run: ./gradlew assembleDebug --no-daemon
         working-directory: android
       - uses: actions/upload-artifact@v4
+        # 成果物の保管は確認用のおまけ。保管容量の上限に達してもビルドの成否には影響させない
+        continue-on-error: true
         with:
           name: android-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
@@ -85,6 +87,8 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
+        # 成果物の保管は確認用のおまけ。保管容量の上限に達してもビルドの成否には影響させない
+        continue-on-error: true
         with:
           name: desktop-${{ matrix.os }}
           path: dist/*-unpacked/
