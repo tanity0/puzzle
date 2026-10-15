@@ -1,0 +1,261 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" width="1536" height="1024">
+  <!-- 依頼 No.001「祖母の家」の仮の写真（GPT の写真に差し替える前提）。座標は request.json の当たり判定と対応。 -->
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2e2620"/>
+      <stop offset="1" stop-color="#1f1915"/>
+    </linearGradient>
+    <linearGradient id="shoji" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#77705c"/>
+      <stop offset="1" stop-color="#4c4739"/>
+    </linearGradient>
+    <linearGradient id="floorShade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9aa6b0" stop-opacity="0.10"/>
+      <stop offset="0.6" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+    <pattern id="tatami" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#4f4c33"/>
+      <rect y="4" width="6" height="1.4" fill="#45422c"/>
+    </pattern>
+    <pattern id="tatamiV" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#4b4830"/>
+      <rect x="4" width="1.4" height="6" fill="#413e29"/>
+    </pattern>
+    <radialGradient id="candleGlow">
+      <stop offset="0" stop-color="#ffcf70" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffcf70" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig" cx="45%" cy="45%" r="75%">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+
+  <!-- 壁・天井 -->
+  <rect width="1536" height="600" fill="url(#wall)"/>
+  <rect width="1536" height="52" fill="#15100d"/>
+  <rect y="52" width="1536" height="98" fill="#3a3128"/>
+  <g stroke="#120d0a" stroke-width="12">
+    <path d="M24 52V150M60 52V150M96 52V150M132 52V150M168 52V150M204 52V150M240 52V150M276 52V150M312 52V150M348 52V150M384 52V150M420 52V150M456 52V150M492 52V150"/>
+    <path d="M580 52V150M616 52V150M652 52V150M688 52V150M724 52V150M760 52V150M796 52V150M832 52V150M868 52V150M904 52V150M940 52V150M976 52V150M1012 52V150M1048 52V150M1084 52V150"/>
+    <path d="M1170 52V150M1206 52V150M1242 52V150M1278 52V150M1314 52V150M1350 52V150M1386 52V150M1422 52V150M1458 52V150M1494 52V150"/>
+  </g>
+  <rect y="150" width="1536" height="18" fill="#1a130f"/>
+
+  <!-- 障子（左） -->
+  <rect x="34" y="168" width="486" height="432" fill="#0f0c0a"/>
+  <rect x="46" y="178" width="462" height="418" fill="url(#shoji)"/>
+  <!-- 障子に映る人影 -->
+  <g><path d="M352 300 Q352 262 384 262 Q416 262 416 300 Q416 330 400 342 L452 380 L470 596 L300 596 L318 380 L368 342 Q352 330 352 300 Z" fill="#14110d" opacity="0.42" filter="url(#soft)"/></g>
+  <g stroke="#2a241d" stroke-width="4">
+    <path d="M112 178V596M178 178V596M244 178V596M310 178V596M376 178V596M442 178V596"/>
+    <path d="M46 230H508M46 282H508M46 334H508M46 386H508M46 438H508M46 490H508M46 542H508"/>
+  </g>
+  <!-- 奥の部屋へ続く障子が少し開いている -->
+  <rect x="266" y="178" width="20" height="418" fill="#040303"/>
+  <g>
+    <path d="M270 383 Q276 377 283 383 Q276 388 270 383 Z" fill="#b9b3a3"/>
+    <circle cx="276.5" cy="383" r="2.6" fill="#050404"/>
+  </g>
+
+  <!-- 柱 -->
+  <g fill="#1a130f">
+    <rect x="0" width="34" height="600"/>
+    <rect x="520" width="36" height="600"/>
+    <rect x="1110" width="36" height="600"/>
+    <rect x="1502" width="34" height="600"/>
+  </g>
+  <g fill="#2a2018">
+    <rect x="522" width="4" height="600"/>
+    <rect x="1112" width="4" height="600"/>
+  </g>
+
+  <!-- 床の間 -->
+  <rect x="556" y="168" width="554" height="352" fill="#17120f"/>
+  <rect x="556" y="520" width="554" height="80" fill="#3a2a1f"/>
+  <rect x="556" y="520" width="554" height="12" fill="#24180f"/>
+  <!-- 掛け軸 -->
+  <rect x="782" y="192" width="116" height="288" fill="#2f3a32"/>
+  <rect x="794" y="206" width="92" height="262" fill="#7d7562"/>
+  <rect x="776" y="186" width="128" height="8" fill="#120d0a"/>
+  <rect x="772" y="478" width="136" height="10" fill="#120d0a"/>
+  <path d="M868 292 A32 32 0 1 1 846 262" fill="none" stroke="#1d1a17" stroke-width="9" stroke-linecap="round"/>
+  <path d="M830 380 Q842 400 836 430" fill="none" stroke="#1d1a17" stroke-width="4"/>
+  <!-- 枯れ枝の花器 -->
+  <path d="M960 520 Q948 486 966 470 L994 470 Q1012 486 1000 520 Z" fill="#2c2722"/>
+  <path d="M980 470 Q970 400 940 360 M980 470 Q996 410 1030 380 M960 400 L944 392" fill="none" stroke="#2a1d14" stroke-width="3"/>
+
+  <!-- 仏壇 -->
+  <polygon points="1150,186 1180,180 1180,600 1150,596" fill="#0b0806" stroke="#5e4b25" stroke-width="2"/>
+  <polygon points="1470,180 1500,186 1500,596 1470,600" fill="#0b0806" stroke="#5e4b25" stroke-width="2"/>
+  <rect x="1180" y="180" width="290" height="420" fill="#0d0907" stroke="#5e4b25" stroke-width="3"/>
+  <rect x="1210" y="210" width="230" height="350" fill="#1a120c"/>
+  <rect x="1210" y="210" width="230" height="40" fill="#3f3218"/>
+  <path d="M1220 230H1430" stroke="#6e5a2c" stroke-width="2" stroke-dasharray="6 6"/>
+  <circle cx="1325" cy="300" r="40" fill="#3d3018"/>
+  <path d="M1325 270 Q1342 270 1342 290 Q1342 304 1334 310 Q1360 322 1362 360 L1288 360 Q1290 322 1316 310 Q1308 304 1308 290 Q1308 270 1325 270 Z" fill="#2a2010"/>
+  <rect x="1250" y="330" width="22" height="80" fill="#0a0705" stroke="#5e4b25" stroke-width="2"/>
+  <rect x="1380" y="330" width="22" height="80" fill="#0a0705" stroke="#5e4b25" stroke-width="2"/>
+  <rect x="1220" y="420" width="210" height="20" fill="#2c1f12"/>
+  <rect x="1210" y="500" width="230" height="20" fill="#2c1f12"/>
+  <ellipse cx="1325" cy="490" rx="26" ry="12" fill="#3a3020"/>
+  <path d="M1318 490 L1314 452 M1330 490 L1334 456" stroke="#6b6250" stroke-width="2"/>
+
+  <!-- 畳 -->
+  <g stroke="#1e1d12" stroke-width="10">
+    <rect x="0" y="600" width="512" height="180" fill="url(#tatami)"/>
+    <rect x="512" y="600" width="512" height="180" fill="url(#tatami)"/>
+    <rect x="1024" y="600" width="512" height="180" fill="url(#tatami)"/>
+    <rect x="0" y="780" width="420" height="244" fill="url(#tatamiV)"/>
+    <rect x="420" y="780" width="696" height="244" fill="url(#tatami)"/>
+    <rect x="1116" y="780" width="420" height="244" fill="url(#tatamiV)"/>
+  </g>
+  <rect y="600" width="1536" height="424" fill="url(#floorShade)"/>
+  <!-- 座布団と散らばった紙（おとり） -->
+  <rect x="690" y="870" width="170" height="110" rx="18" fill="#2c1e2c"/>
+  <rect x="704" y="882" width="142" height="86" rx="14" fill="none" stroke="#3c2a3c" stroke-width="3"/>
+  <polygon points="520,700 572,690 578,722 526,732" fill="#5e5a4a"/>
+  <polygon points="1000,940 1046,948 1040,974 996,966" fill="#56523f"/>
+
+  <!-- ===== 探すアイテム ===== -->
+
+  <!-- 日本人形 doll -->
+  <g id="doll">
+    <path d="M610 525 L650 525 L644 465 L616 465 Z" fill="#5a1a1a"/>
+    <rect x="615" y="478" width="30" height="8" fill="#8a6a2a"/>
+    <circle cx="630" cy="450" r="15" fill="#d8d0c0"/>
+    <path d="M613 452 Q613 428 630 428 Q647 428 647 452 L647 464 L642 464 L642 446 Q630 440 618 446 L618 464 L613 464 Z" fill="#0a0807"/>
+    <circle cx="625" cy="452" r="1.8" fill="#111"/>
+    <circle cx="635" cy="452" r="1.8" fill="#111"/>
+    <circle cx="630" cy="459" r="1.4" fill="#8a1e1e"/>
+  </g>
+
+  <!-- 鈴 bell -->
+  <g id="bell">
+    <path d="M300 168 V204" stroke="#6a1d1d" stroke-width="2"/>
+    <circle cx="300" cy="217" r="13" fill="#8a7130"/>
+    <circle cx="295" cy="212" r="4" fill="#b89a50"/>
+    <path d="M290 222 H310" stroke="#3a2d10" stroke-width="2"/>
+  </g>
+
+  <!-- お札 ofuda -->
+  <g id="ofuda">
+    <rect x="1114" y="300" width="28" height="90" fill="#b5ab90"/>
+    <circle cx="1128" cy="318" r="7" fill="#7a1e1e"/>
+    <path d="M1128 332 V380 M1122 346 H1134 M1122 362 H1134" stroke="#2a2018" stroke-width="2.5"/>
+  </g>
+
+  <!-- 櫛 comb -->
+  <g id="comb">
+    <path d="M870 830 Q900 802 930 830 Z" fill="#4a1f17"/>
+    <path d="M874 830V842M879 830V842M884 830V842M889 830V842M894 830V842M899 830V842M904 830V842M909 830V842M914 830V842M919 830V842M924 830V842" stroke="#4a1f17" stroke-width="2.2"/>
+    <path d="M884 822 Q900 812 916 822" fill="none" stroke="#7a3a28" stroke-width="1.5"/>
+  </g>
+
+  <!-- 蝋燭 candle -->
+  <g id="candle">
+    <circle cx="1241" cy="446" r="22" fill="url(#candleGlow)"/>
+    <rect x="1236" y="454" width="10" height="46" fill="#c8c0aa"/>
+    <ellipse cx="1241" cy="445" rx="4" ry="9" fill="#f0c060"/>
+  </g>
+
+  <!-- 手鏡 mirror -->
+  <g id="mirror">
+    <path d="M258 908 L296 952" stroke="#2a1e14" stroke-width="11" stroke-linecap="round"/>
+    <ellipse cx="240" cy="888" rx="30" ry="26" fill="#6b7076" stroke="#2a1e14" stroke-width="6"/>
+    <path d="M226 878 Q236 870 248 874" fill="none" stroke="#a9aeb3" stroke-width="3"/>
+    <g>
+      <ellipse cx="243" cy="892" rx="9" ry="12" fill="#d2d4cc" opacity="0.55"/>
+      <path d="M233 884 Q243 874 253 884 L253 904 L249 896 L237 896 L233 904 Z" fill="#141210" opacity="0.7"/>
+      <circle cx="240" cy="891" r="1.3" fill="#111"/><circle cx="246" cy="891" r="1.3" fill="#111"/>
+    </g>
+  </g>
+
+  <!-- 鍵 key -->
+  <g id="key" fill="none" stroke="#6d5a35" stroke-width="4">
+    <circle cx="1308" cy="950" r="9"/>
+    <path d="M1317 950 H1360 M1350 950 V960 M1357 950 V958"/>
+  </g>
+
+  <!-- 狐面 fox mask -->
+  <g id="foxmask">
+    <path d="M1040 226 V236" stroke="#6a1d1d" stroke-width="2"/>
+    <path d="M1015 262 L1022 232 L1032 258 L1048 258 L1058 232 L1065 262 Q1068 300 1040 330 Q1012 300 1015 262 Z" fill="#cfc6b2"/>
+    <path d="M1022 240 L1026 256 M1058 240 L1054 256" stroke="#8a1e1e" stroke-width="3"/>
+    <path d="M1024 278 Q1030 272 1036 280 M1044 280 Q1050 272 1056 278" fill="none" stroke="#8a1e1e" stroke-width="3"/>
+    <circle cx="1040" cy="316" r="3" fill="#1a1414"/>
+  </g>
+
+  <!-- 番傘 umbrella -->
+  <g id="umbrella">
+    <path d="M102 516 L74 600" stroke="#2a1a10" stroke-width="5"/>
+    <polygon points="114,300 132,306 112,520 92,516" fill="#5a1f17"/>
+    <path d="M118 304 L104 516 M126 306 L108 518" stroke="#3a120c" stroke-width="2"/>
+    <circle cx="122" cy="296" r="5" fill="#2a1a10"/>
+  </g>
+
+  <!-- 数珠 beads -->
+  <g id="beads" fill="#3a2a20" stroke="#1a120d" stroke-width="1">
+    <circle cx="686" cy="692" r="4.5"/><circle cx="684" cy="701" r="4.5"/><circle cx="679" cy="709" r="4.5"/>
+    <circle cx="672" cy="715" r="4.5"/><circle cx="663" cy="718" r="4.5"/><circle cx="654" cy="717" r="4.5"/>
+    <circle cx="646" cy="713" r="4.5"/><circle cx="639" cy="706" r="4.5"/><circle cx="635" cy="697" r="4.5"/>
+    <circle cx="634" cy="688" r="4.5"/><circle cx="637" cy="679" r="4.5"/><circle cx="643" cy="671" r="4.5"/>
+    <circle cx="651" cy="667" r="4.5"/><circle cx="660" cy="666" r="4.5"/><circle cx="669" cy="667" r="4.5"/>
+    <circle cx="677" cy="672" r="4.5"/><circle cx="683" cy="679" r="4.5"/><circle cx="686" cy="685" r="4.5"/>
+    <path d="M663 718 L668 740 M663 718 L658 742" stroke="#6a1d1d" stroke-width="3" fill="none"/>
+  </g>
+
+  <!-- 湯呑み teacup -->
+  <g id="teacup">
+    <path d="M1100 830 L1140 830 L1136 868 Q1120 874 1104 868 Z" fill="#3c4a50"/>
+    <ellipse cx="1120" cy="830" rx="20" ry="5" fill="#1a2024"/>
+  </g>
+
+
+
+  <!-- 壊れたテレビ（台の上）。画面のひびは除霊前後とも -->
+  <g id="tv">
+    <rect x="884" y="742" width="212" height="44" fill="#2a1d13"/>
+    <rect x="892" y="786" width="10" height="20" fill="#1a120c"/><rect x="1078" y="786" width="10" height="20" fill="#1a120c"/>
+    <rect x="900" y="606" width="180" height="138" rx="8" fill="#3b2a1c"/>
+    <rect x="912" y="620" width="122" height="106" rx="14" fill="#0f1211"/>
+    <path d="M920 630 Q972 616 1026 632" fill="none" stroke="#2c3330" stroke-width="3" opacity="0.6"/>
+    <circle cx="1057" cy="645" r="7" fill="#1a120c"/><circle cx="1057" cy="668" r="7" fill="#1a120c"/>
+    <rect x="1046" y="690" width="22" height="26" fill="#241912"/>
+    <path d="M990 650 L1006 676 L998 690 L1016 714" fill="none" stroke="#3e4542" stroke-width="1.5"/>
+  </g>
+  <g>
+    <ellipse cx="962" cy="672" rx="20" ry="27" fill="#cfd6cf" opacity="0.2" filter="url(#soft)"/>
+    <ellipse cx="955" cy="667" rx="4" ry="5" fill="#050605" opacity="0.6"/>
+    <ellipse cx="969" cy="667" rx="4" ry="5" fill="#050605" opacity="0.6"/>
+    <ellipse cx="962" cy="688" rx="4" ry="6" fill="#050605" opacity="0.45"/>
+  </g>
+
+  <!-- 遺影（仏壇の下段） -->
+  <g id="portrait">
+    <rect x="1352" y="444" width="44" height="56" fill="#0a0806" stroke="#4a3a1c" stroke-width="2"/>
+    <rect x="1358" y="450" width="32" height="44" fill="#6e6a60"/>
+    <path d="M1352 444 L1364 456 M1396 444 L1384 456" stroke="#111" stroke-width="5"/>
+  </g>
+  <g>
+    <circle cx="1374" cy="466" r="9" fill="#050404"/>
+    <path d="M1364 494 Q1374 476 1384 494 Z" fill="#3a3530"/>
+  </g>
+
+  <!-- 奥の部屋からテレビへ続く濡れた足跡 -->
+  <g fill="#23231a" opacity="0.6">
+    <ellipse cx="318" cy="640" rx="8" ry="15" transform="rotate(-20 318 640)"/>
+    <ellipse cx="372" cy="676" rx="8" ry="15" transform="rotate(-60 372 676)"/>
+    <ellipse cx="440" cy="668" rx="8" ry="15" transform="rotate(-70 440 668)"/>
+    <ellipse cx="510" cy="712" rx="8" ry="15" transform="rotate(-65 510 712)"/>
+    <ellipse cx="584" cy="704" rx="8" ry="15" transform="rotate(-75 584 704)"/>
+    <ellipse cx="760" cy="748" rx="8" ry="15" transform="rotate(-80 760 748)"/>
+    <ellipse cx="840" cy="738" rx="8" ry="15" transform="rotate(-85 840 738)"/>
+  </g>
+
+  <rect width="1536" height="1024" fill="url(#vig)"/>
+  <!-- フィルムの日付写し込み -->
+  <text x="1420" y="990" font-family="monospace" font-size="30" fill="#e8863a" opacity="0.85" text-anchor="end">'24 8 12</text>
+</svg>
