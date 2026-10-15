@@ -49,6 +49,7 @@ jobs:
         with:
           name: android-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 3 # Actions ストレージ対策(2026-10-15): 既定90日だと APK が積み上がる(実測15本=1.6GB)。3日で消す
 
   ios:
     name: iOS ビルド（シミュレーター・署名なし）
@@ -88,3 +89,4 @@ jobs:
           name: desktop-${{ matrix.os }}
           path: dist/*-unpacked/
           if-no-files-found: ignore
+          retention-days: 3 # 同上
